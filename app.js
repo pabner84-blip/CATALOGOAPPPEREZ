@@ -632,14 +632,16 @@ const OCR_IGNORE_WORDS = [
 
 // Dos modos de escaneo: numérico puro (más preciso para códigos como 17736)
 // y alfanumérico (2-4 letras + 2-5 números, guion opcional, ej: HNV3445)
+// Incluimos el espacio en el whitelist para que Tesseract separe correctamente
+// el código de otros números/textos cercanos en la etiqueta (precio, marca, etc.)
 const OCR_MODES = {
   numerico: {
     pattern: /^[0-9]{3,8}$/,
-    whitelist: '0123456789'
+    whitelist: '0123456789 '
   },
   alfanumerico: {
     pattern: /^[A-Z]{2,4}[0-9]{2,5}(-[0-9]{2,4})?$/,
-    whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-'
+    whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- '
   }
 };
 
@@ -722,7 +724,8 @@ async function startOcrScanner(){
     ocrWorker = await Tesseract.createWorker('eng');
     await ocrWorker.setParameters({
       tessedit_char_whitelist: OCR_MODES[scanCodeMode].whitelist,
-      tessedit_pageseg_mode: '6'
+      tessedit_pageseg_mode: '6',
+      preserve_interword_spaces: '1'
     });
   }catch(err){
     console.warn(err);
@@ -744,26 +747,29 @@ function scheduleNextOcrCapture(){
 
 // Convierte el recorte a blanco y negro (umbral) para que Tesseract lea
 // mucho mejor las etiquetas fotografiadas con la cámara del celular.
+// Escala de grises + realce de contraste (sin forzar blanco/negro puro).
+// Un umbral fijo puede "borrar" el texto por completo con luz de tienda
+// desigual; Tesseract ya aplica su propia binarización adaptativa internamente,
+// así que aquí solo le damos una imagen de mayor contraste para ayudarlo.
 function preprocessCanvas(canvas){
   const ctx = canvas.getContext('2d');
   const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = imgData.data;
+  const n = canvas.width * canvas.height;
 
-  // 1) escala de grises
-  const gray = new Uint8ClampedArray(canvas.width * canvas.height);
+  const gray = new Uint8ClampedArray(n);
+  let min = 255, max = 0;
   for(let i = 0, j = 0; i < d.length; i += 4, j++){
-    gray[j] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    gray[j] = g;
+    if(g < min) min = g;
+    if(g > max) max = g;
   }
 
-  // 2) umbral automático simple (media de brillo) para binarizar
-  let sum = 0;
-  for(let j = 0; j < gray.length; j++) sum += gray[j];
-  const mean = sum / gray.length;
-  const threshold = mean * 0.9; // un poco por debajo de la media favorece texto oscuro sobre fondo claro
-
+  const range = Math.max(max - min, 1); // evita división por cero en imágenes planas
   for(let i = 0, j = 0; i < d.length; i += 4, j++){
-    const v = gray[j] > threshold ? 255 : 0;
-    d[i] = d[i+1] = d[i+2] = v;
+    const stretched = ((gray[j] - min) / range) * 255;
+    d[i] = d[i+1] = d[i+2] = stretched;
   }
   ctx.putImageData(imgData, 0, 0);
 }
@@ -803,8 +809,17 @@ async function runOcrCapture(){
         window.__lastOcrTime = now;
         handleScannedCode(best);
       }
+      if(ocrActive) setOcrStatus('✅ Código detectado: ' + best);
+    }else if(ocrActive){
+      // Muestra lo último que "vio" el OCR (aunque no coincida) para poder
+      // ajustar el encuadre o diagnosticar si el motor no está leyendo nada.
+      const raw = String(text||'').replace(/\s+/g,' ').trim();
+      if(raw){
+        setOcrStatus('🔎 Leyendo: "' + raw.slice(0,28) + '" — buscando código...');
+      }else{
+        setOcrStatus('🔎 Buscando código... (acerca más la etiqueta o mejora la luz)');
+      }
     }
-    if(ocrActive) setOcrStatus('🔎 Buscando código...');
   }catch(err){
     console.warn('Error de OCR', err);
   }finally{
