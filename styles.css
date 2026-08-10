@@ -141,6 +141,16 @@ input,select{font-family:inherit;}
 
 .badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;}
 .badge-muted{background:#e5e7eb; color:#374151;}
+.badge-success-soft{background:var(--success-light); color:#166534;}
+.badge-danger-soft{background:var(--danger-light); color:#991b1b;}
+
+/* ---------- HISTORIAL ---------- */
+.history-search-row{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 0; border-bottom:1px dashed var(--border); font-size:13.5px;
+}
+.history-search-row:last-child{border-bottom:none;}
+.history-search-row small{color:var(--text-muted); white-space:nowrap;}
 
 /* ---------- MODALS ---------- */
 .modal-backdrop{display:none; position:fixed; inset:0; background:rgba(17,24,39,.55); z-index:200;}

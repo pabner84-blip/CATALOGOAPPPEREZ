@@ -17,7 +17,9 @@ function defaultDB(){
   return {
     productos: [],
     categorias: [],
-    contador: { producto: 1 }
+    contador: { producto: 1 },
+    historialEscaneos: [],
+    historialBusquedas: []
   };
 }
 
@@ -29,6 +31,8 @@ function loadDB(){
       db.productos = db.productos || [];
       db.categorias = db.categorias || [];
       db.contador = db.contador || { producto: 1 };
+      db.historialEscaneos = db.historialEscaneos || [];
+      db.historialBusquedas = db.historialBusquedas || [];
       return;
     }
   }catch(e){ console.error('Error leyendo LocalStorage', e); }
@@ -193,6 +197,71 @@ function handleScannedCode(codigo){
   codigo = String(codigo).trim();
   if(!codigo) return;
   renderScanResult(codigo);
+  logScanHistory(codigo);
+}
+
+const HISTORY_MAX = 300;
+
+function logScanHistory(codigo){
+  const p = getProductoByCodigo(codigo);
+  db.historialEscaneos.unshift({
+    codigo,
+    encontrado: !!p,
+    nombre: p ? p.nombre : '',
+    fecha: todayISO()
+  });
+  if(db.historialEscaneos.length > HISTORY_MAX){
+    db.historialEscaneos.length = HISTORY_MAX;
+  }
+  saveDB();
+}
+
+function logSearchHistory(query){
+  query = String(query||'').trim();
+  if(!query) return;
+  // Evita registrar la misma búsqueda repetida justo seguida
+  const last = db.historialBusquedas[0];
+  if(last && normalize(last.query) === normalize(query)) return;
+  db.historialBusquedas.unshift({ query, fecha: todayISO() });
+  if(db.historialBusquedas.length > HISTORY_MAX){
+    db.historialBusquedas.length = HISTORY_MAX;
+  }
+  saveDB();
+}
+
+function fmtHistoryDate(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleString('es-BO', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }catch(e){ return ''; }
+}
+
+function renderHistorial(){
+  const scanBody = document.querySelector('#scanHistoryTable tbody');
+  if(db.historialEscaneos.length === 0){
+    scanBody.innerHTML = `<tr class="empty-row"><td colspan="4">Todavía no escaneaste ningún código.</td></tr>`;
+  }else{
+    scanBody.innerHTML = db.historialEscaneos.map(h => `
+      <tr>
+        <td><strong>${escapeHtml(h.codigo)}</strong></td>
+        <td>${h.encontrado ? escapeHtml(h.nombre) : '-'}</td>
+        <td>${h.encontrado ? '<span class="badge badge-success-soft">Encontrado</span>' : '<span class="badge badge-danger-soft">No encontrado</span>'}</td>
+        <td>${fmtHistoryDate(h.fecha)}</td>
+      </tr>
+    `).join('');
+  }
+
+  const searchList = document.getElementById('searchHistoryList');
+  if(db.historialBusquedas.length === 0){
+    searchList.innerHTML = `<p class="hint">Todavía no hiciste ninguna búsqueda en Productos.</p>`;
+  }else{
+    searchList.innerHTML = db.historialBusquedas.map(h => `
+      <div class="history-search-row">
+        <span>🔍 ${escapeHtml(h.query)}</span>
+        <small>${fmtHistoryDate(h.fecha)}</small>
+      </div>
+    `).join('');
+  }
 }
 
 /* -------------------------------------------------------------------------
@@ -560,6 +629,7 @@ const VIEW_TITLES = {
   escaner: 'Escanear',
   productos: 'Productos',
   categorias: 'Categorías',
+  historial: 'Historial',
   config: 'Configuración'
 };
 
@@ -574,6 +644,7 @@ function showView(name){
 
   if(name === 'productos') renderProductos();
   if(name === 'categorias') renderCategorias();
+  if(name === 'historial') renderHistorial();
   if(name === 'escaner'){
     document.getElementById('scanResult').innerHTML = '';
     if(!ocrActive) startOcrScanner();
@@ -682,6 +753,42 @@ function pickBestCandidate(candidates){
   return candidates[0];
 }
 
+// Normaliza confusiones típicas de OCR entre letras y números parecidos
+// (O/0, I/1, S/5, B/8, Z/2, G/6) para poder comparar "a ojo" contra los
+// códigos ya guardados, incluso si el OCR leyó mal alguno de esos caracteres.
+function normalizeForFuzzyMatch(str){
+  return String(str||'').toUpperCase().replace(/[^A-Z0-9]/g,'')
+    .replace(/O/g,'0').replace(/I/g,'1').replace(/S/g,'5')
+    .replace(/B/g,'8').replace(/Z/g,'2').replace(/G/g,'6');
+}
+
+function findProductoFuzzy(token){
+  if(!token || token.length < 3) return null;
+  const norm = normalizeForFuzzyMatch(token);
+  return db.productos.find(p => normalizeForFuzzyMatch(p.codigo) === norm) || null;
+}
+
+// Resuelve el mejor código a partir del texto leído por el OCR:
+// 1) un candidato con forma válida que ya existe en la base
+// 2) una corrección por confusión de caracteres (solo modo alfanumérico)
+// 3) el primer candidato con forma válida (para poder crear el producto)
+function resolveScannedText(text){
+  const candidates = extractCandidateCodes(text);
+  const exactExisting = candidates.find(c => getProductoByCodigo(c));
+  if(exactExisting) return exactExisting;
+
+  if(scanCodeMode === 'alfanumerico'){
+    const tokens = String(text||'').split(/[\s\n\r,;:|]+/).map(cleanOcrToken).filter(Boolean);
+    for(const tok of tokens){
+      if(OCR_IGNORE_WORDS.includes(tok)) continue;
+      const fuzzyMatch = findProductoFuzzy(tok);
+      if(fuzzyMatch) return fuzzyMatch.codigo;
+    }
+  }
+
+  return candidates[0] || null;
+}
+
 function setOcrStatus(msg){
   const el = document.getElementById('ocrStatus');
   if(el) el.textContent = msg;
@@ -776,7 +883,7 @@ function preprocessCanvas(canvas){
 }
 
 async function runOcrCapture(){
-  if(!ocrActive || ocrBusy) return;
+  if(!ocrActive || ocrBusy || ocrPaused) return;
   const videoEl = document.getElementById('ocrVideo');
   const canvasEl = document.getElementById('ocrCanvas');
   if(!videoEl || !videoEl.videoWidth){ scheduleNextOcrCapture(); return; }
@@ -800,8 +907,8 @@ async function runOcrCapture(){
 
     setOcrStatus('🔎 Analizando etiqueta...');
     const { data: { text } } = await ocrWorker.recognize(canvasEl);
-    const candidates = extractCandidateCodes(text);
-    const best = pickBestCandidate(candidates);
+    if(ocrPaused) return; // se tomó una foto manual mientras se analizaba este fotograma: descartar
+    const best = resolveScannedText(text);
 
     if(best){
       const now = Date.now();
@@ -834,38 +941,43 @@ async function runOcrCapture(){
 // mover el celular justo en ese instante, así que sale mucho más nítido
 // que un fotograma tomado en movimiento durante el escaneo continuo.
 async function captureShot(){
-  if(!ocrActive || !ocrWorker || ocrBusy) return;
+  if(!ocrActive || !ocrWorker) return;
   const videoEl = document.getElementById('ocrVideo');
   const canvasEl = document.getElementById('ocrCanvas');
   const frozenImg = document.getElementById('ocrFrozenImg');
   if(!videoEl || !videoEl.videoWidth) return;
 
+  // Pausa el escaneo continuo y congela la imagen DE INMEDIATO, sin esperar
+  // a que termine un análisis en curso (si lo había) — así el botón responde
+  // al instante en vez de parecer que "no hace nada".
   ocrPaused = true;
   if(ocrTimer){ clearTimeout(ocrTimer); ocrTimer = null; }
+
+  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+  // Margen más generoso que el escaneo continuo: el usuario ya encuadró y confirmó
+  const cropW = vw * 0.85, cropH = vh * 0.4;
+  const cropX = (vw - cropW) / 2, cropY = (vh - cropH) / 2;
+  const scale = 2.2;
+  canvasEl.width = cropW * scale;
+  canvasEl.height = cropH * scale;
+  const ctx = canvasEl.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, canvasEl.width, canvasEl.height);
+
+  // Muestra la foto congelada (antes del preprocesamiento) para dar la sensación de "captura"
+  frozenImg.src = canvasEl.toDataURL('image/jpeg', 0.85);
+  frozenImg.classList.add('visible');
+  document.getElementById('btnCaptureShot').style.display = 'none';
+  document.getElementById('btnResumeLive').style.display = '';
+  setOcrStatus('📸 Foto capturada. Analizando...');
+
   ocrBusy = true;
-
   try{
-    const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
-    // Margen más generoso que el escaneo continuo: el usuario ya encuadró y confirmó
-    const cropW = vw * 0.85, cropH = vh * 0.4;
-    const cropX = (vw - cropW) / 2, cropY = (vh - cropH) / 2;
-    const scale = 2.2;
-    canvasEl.width = cropW * scale;
-    canvasEl.height = cropH * scale;
-    const ctx = canvasEl.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, canvasEl.width, canvasEl.height);
-
-    // Muestra la foto congelada (antes del preprocesamiento) para dar la sensación de "captura"
-    frozenImg.src = canvasEl.toDataURL('image/jpeg', 0.85);
-    frozenImg.classList.add('visible');
-
     preprocessCanvas(canvasEl);
-
-    setOcrStatus('📸 Analizando foto capturada...');
+    // recognize() se encola automáticamente si el motor todavía estaba
+    // procesando un fotograma del escaneo continuo; no hace falta esperar aquí.
     const { data: { text } } = await ocrWorker.recognize(canvasEl);
-    const candidates = extractCandidateCodes(text);
-    const best = pickBestCandidate(candidates);
+    const best = resolveScannedText(text);
 
     if(best){
       handleScannedCode(best);
@@ -881,8 +993,6 @@ async function captureShot(){
     setOcrStatus('No se pudo analizar la foto. Intenta de nuevo.');
   }finally{
     ocrBusy = false;
-    document.getElementById('btnCaptureShot').style.display = 'none';
-    document.getElementById('btnResumeLive').style.display = '';
   }
 }
 
@@ -990,6 +1100,9 @@ function setupEventListeners(){
   document.getElementById('btnNewProduct').addEventListener('click', ()=> openProductModal());
   document.getElementById('formProducto').addEventListener('submit', handleProductSubmit);
   document.getElementById('prodSearch').addEventListener('input', renderProductos);
+  document.getElementById('prodSearch').addEventListener('change', (e)=>{
+    logSearchHistory(e.target.value);
+  });
   document.getElementById('prodFilterCategoria').addEventListener('change', renderProductos);
   document.querySelector('#productsTable tbody').addEventListener('click', (e)=>{
     const editId = e.target.closest('[data-edit-product]')?.dataset.editProduct;
@@ -1008,6 +1121,24 @@ function setupEventListeners(){
     input.value = '';
     renderCategorias();
     toast('Categoría agregada', 'success');
+  });
+
+  // Historial
+  document.getElementById('btnClearScanHistory').addEventListener('click', ()=>{
+    confirmDialog('Borrar historial de escaneos', '¿Seguro que quieres borrar todo el historial de códigos escaneados?', ()=>{
+      db.historialEscaneos = [];
+      saveDB();
+      renderHistorial();
+      toast('Historial de escaneos borrado', 'success');
+    });
+  });
+  document.getElementById('btnClearSearchHistory').addEventListener('click', ()=>{
+    confirmDialog('Borrar historial de búsquedas', '¿Seguro que quieres borrar todo el historial de búsquedas?', ()=>{
+      db.historialBusquedas = [];
+      saveDB();
+      renderHistorial();
+      toast('Historial de búsquedas borrado', 'success');
+    });
   });
 
   // Importaciones CSV (desde Productos y desde Configuración)

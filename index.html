@@ -22,6 +22,7 @@
     <button class="nav-item active" data-view="escaner"><span>📷</span> Escanear</button>
     <button class="nav-item" data-view="productos"><span>📦</span> Productos</button>
     <button class="nav-item" data-view="categorias"><span>🗂️</span> Categorías</button>
+    <button class="nav-item" data-view="historial"><span>🕘</span> Historial</button>
     <button class="nav-item" data-view="config"><span>⚙️</span> Configuración</button>
   </nav>
 
@@ -104,6 +105,36 @@
         <button class="btn btn-primary" id="btnAddCategory">+ Agregar categoría</button>
       </div>
       <div class="cards-grid" id="categoriesGrid"></div>
+    </section>
+
+    <!-- ---------- HISTORIAL ---------- -->
+    <section class="view" id="view-historial">
+      <div class="panel">
+        <div class="panel-header">
+          <h3>📷 Códigos escaneados</h3>
+          <button class="btn btn-sm btn-secondary" id="btnClearScanHistory">Borrar</button>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <div class="table-wrap" style="box-shadow:none; border-radius:0;">
+            <table class="table" id="scanHistoryTable">
+              <thead>
+                <tr><th>Código</th><th>Producto</th><th>Estado</th><th>Fecha</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h3>🔍 Búsquedas en Productos</h3>
+          <button class="btn btn-sm btn-secondary" id="btnClearSearchHistory">Borrar</button>
+        </div>
+        <div class="panel-body">
+          <div id="searchHistoryList"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ---------- CONFIGURACIÓN ---------- -->
