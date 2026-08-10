@@ -192,7 +192,8 @@ input,select{font-family:inherit;}
 }
 .ocr-frozen.visible{display:block;}
 .ocr-guide{
-  position:absolute; left:15%; right:15%; top:37%; bottom:37%;
+  /* Debe coincidir con GUIDE_BOX en app.js: lo que se ve aquí es exactamente lo que se analiza */
+  position:absolute; left:15%; right:15%; top:35%; bottom:35%;
   border:2px dashed rgba(255,255,255,.9); border-radius:6px; pointer-events:none;
 }
 .ocr-status{

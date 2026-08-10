@@ -22,6 +22,7 @@
     <button class="nav-item active" data-view="escaner"><span>📷</span> Escanear</button>
     <button class="nav-item" data-view="productos"><span>📦</span> Productos</button>
     <button class="nav-item" data-view="categorias"><span>🗂️</span> Categorías</button>
+    <button class="nav-item" data-view="ventas"><span>💰</span> Ventas</button>
     <button class="nav-item" data-view="historial"><span>🕘</span> Historial</button>
     <button class="nav-item" data-view="config"><span>⚙️</span> Configuración</button>
   </nav>
@@ -70,7 +71,7 @@
             <button class="btn btn-secondary" id="btnCaptureShot">📸 Capturar foto</button>
             <button class="btn btn-secondary" id="btnResumeLive" style="display:none;">🔄 Volver a cámara en vivo</button>
           </div>
-          <p class="hint">Acerca el código a ~20 cm del recuadro. Si se mueve y no lee bien, toca "Capturar foto" para congelar la imagen y analizarla con calma.</p>
+          <p class="hint">Acerca el celular a ~5 cm del código y encájalo dentro del recuadro punteado (solo se lee lo que está adentro). Si se mueve y no lee bien, toca "Capturar foto" para congelar la imagen y analizarla con calma.</p>
         </div>
       </div>
 
@@ -105,6 +106,22 @@
         <button class="btn btn-primary" id="btnAddCategory">+ Agregar categoría</button>
       </div>
       <div class="cards-grid" id="categoriesGrid"></div>
+    </section>
+
+    <!-- ---------- VENTAS ---------- -->
+    <section class="view" id="view-ventas">
+      <p class="hint" id="ventasSummary" style="margin-bottom:12px;">0 ventas</p>
+      <div class="table-wrap">
+        <table class="table" id="ventasTable">
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Código</th><th>Producto</th><th>Cant.</th>
+              <th>Precio</th><th>Total</th><th>Pago</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ---------- HISTORIAL ---------- -->
@@ -194,6 +211,36 @@
       <label>Precio de venta<input type="number" id="pPrecioVenta" class="input" step="0.01" min="0"></label>
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Sale (Venta) Modal -->
+<div class="modal modal-sm" id="modalVenta">
+  <div class="modal-header">
+    <h3>💰 Registrar venta</h3>
+    <button class="modal-close" data-close-modal>✕</button>
+  </div>
+  <div class="modal-body">
+    <form id="formVenta" class="form-grid">
+      <input type="hidden" id="vCodigo">
+      <input type="hidden" id="vNombre">
+      <input type="hidden" id="vMetodoPago" value="efectivo">
+      <div class="product-info-box visible" style="grid-column:1/-1;">
+        📦 <strong id="vNombreDisplay"></strong>
+      </div>
+      <label>Cantidad *<input type="number" id="vCantidad" class="input" step="1" min="1" value="1" required></label>
+      <label>Precio de venta *<input type="number" id="vPrecio" class="input" step="0.01" min="0" required></label>
+      <label style="grid-column:1/-1;">Método de pago
+        <div class="scan-mode-tabs" style="margin-top:4px;">
+          <button type="button" class="scan-tab active" data-payment-method="efectivo">💵 Efectivo</button>
+          <button type="button" class="scan-tab" data-payment-method="qr">📱 QR</button>
+        </div>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-success">Registrar venta</button>
         <button type="button" class="btn btn-secondary" data-close-modal>Cancelar</button>
       </div>
     </form>

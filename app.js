@@ -17,9 +17,10 @@ function defaultDB(){
   return {
     productos: [],
     categorias: [],
-    contador: { producto: 1 },
+    contador: { producto: 1, venta: 1 },
     historialEscaneos: [],
-    historialBusquedas: []
+    historialBusquedas: [],
+    ventas: []
   };
 }
 
@@ -30,9 +31,11 @@ function loadDB(){
       db = JSON.parse(raw);
       db.productos = db.productos || [];
       db.categorias = db.categorias || [];
-      db.contador = db.contador || { producto: 1 };
+      db.contador = db.contador || { producto: 1, venta: 1 };
+      db.contador.venta = db.contador.venta || 1;
       db.historialEscaneos = db.historialEscaneos || [];
       db.historialBusquedas = db.historialBusquedas || [];
+      db.ventas = db.ventas || [];
       return;
     }
   }catch(e){ console.error('Error leyendo LocalStorage', e); }
@@ -53,9 +56,11 @@ function saveDB(){
    2. UTILIDADES
    ------------------------------------------------------------------------- */
 
-function uid(){
-  const n = db.contador.producto++;
-  return 'p' + n + '_' + Date.now().toString(36);
+function uid(kind){
+  kind = kind || 'producto';
+  db.contador[kind] = db.contador[kind] || 1;
+  const n = db.contador[kind]++;
+  return kind[0] + n + '_' + Date.now().toString(36);
 }
 
 function escapeHtml(str){
@@ -154,6 +159,78 @@ function deleteProducto(id){
 }
 
 /* -------------------------------------------------------------------------
+   4b. VENTAS
+   ------------------------------------------------------------------------- */
+
+function saveVenta(data){
+  const cantidad = parseFloat(data.cantidad) || 0;
+  const precio = parseFloat(data.precio) || 0;
+  const venta = {
+    id: uid('venta'),
+    codigo: data.codigo,
+    nombre: data.nombre,
+    cantidad,
+    precioUnitario: precio,
+    total: cantidad * precio,
+    metodoPago: data.metodoPago,
+    fecha: todayISO()
+  };
+  db.ventas.unshift(venta);
+  saveDB();
+  return venta;
+}
+
+function deleteVenta(id){
+  confirmDialog('Eliminar venta', '¿Seguro que quieres eliminar este registro de venta?', ()=>{
+    db.ventas = db.ventas.filter(v => v.id !== id);
+    saveDB();
+    renderVentas();
+    toast('Venta eliminada', 'success');
+  });
+}
+
+function openVentaModal(producto){
+  document.getElementById('vCodigo').value = producto.codigo;
+  document.getElementById('vNombreDisplay').textContent = producto.nombre;
+  document.getElementById('vNombre').value = producto.nombre;
+  document.getElementById('vCantidad').value = 1;
+  document.getElementById('vPrecio').value = producto.precioVenta || 0;
+  document.querySelectorAll('[data-payment-method]').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.paymentMethod === 'efectivo');
+  });
+  document.getElementById('vMetodoPago').value = 'efectivo';
+  openModal('modalVenta');
+}
+
+function handleVentaSubmit(e){
+  e.preventDefault();
+  const cantidad = parseFloat(document.getElementById('vCantidad').value);
+  const precio = parseFloat(document.getElementById('vPrecio').value);
+  const metodoPago = document.getElementById('vMetodoPago').value;
+
+  if(!cantidad || cantidad <= 0){
+    toast('Ingresa una cantidad válida', 'error');
+    return;
+  }
+  if(precio === null || isNaN(precio) || precio < 0){
+    toast('Ingresa un precio válido', 'error');
+    return;
+  }
+  if(!metodoPago){
+    toast('Selecciona un método de pago', 'error');
+    return;
+  }
+
+  saveVenta({
+    codigo: document.getElementById('vCodigo').value,
+    nombre: document.getElementById('vNombre').value,
+    cantidad, precio, metodoPago
+  });
+  closeAllModals();
+  toast('Venta registrada', 'success');
+}
+
+/* -------------------------------------------------------------------------
    4. VISTA: ESCÁNER / RESULTADO
    ------------------------------------------------------------------------- */
 
@@ -184,12 +261,16 @@ function renderScanResult(codigo){
       <div class="sr-row"><span>Precio de compra</span><strong>${fmtMoney(p.precioCompra)}</strong></div>
       <div class="sr-row"><span>Precio de marca</span><strong>${fmtMoney(p.precioMarca)}</strong></div>
       <div class="sr-row"><span>Precio de venta</span><strong>${fmtMoney(p.precioVenta)}</strong></div>
-      <div style="margin-top:12px;">
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" id="btnEditFromScan">✏️ Editar producto</button>
+        <button class="btn btn-success btn-sm" id="btnSellFromScan">💰 Venderlo</button>
       </div>
     </div>`;
   document.getElementById('btnEditFromScan').addEventListener('click', ()=>{
     openProductModal(p);
+  });
+  document.getElementById('btnSellFromScan').addEventListener('click', ()=>{
+    openVentaModal(p);
   });
 }
 
@@ -262,6 +343,35 @@ function renderHistorial(){
       </div>
     `).join('');
   }
+}
+
+const PAYMENT_LABELS = { efectivo: '💵 Efectivo', qr: '📱 QR' };
+
+function renderVentas(){
+  const tbody = document.querySelector('#ventasTable tbody');
+  const summary = document.getElementById('ventasSummary');
+
+  if(db.ventas.length === 0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Todavía no registraste ninguna venta.</td></tr>`;
+    summary.textContent = '0 ventas';
+    return;
+  }
+
+  tbody.innerHTML = db.ventas.map(v => `
+    <tr>
+      <td>${fmtHistoryDate(v.fecha)}</td>
+      <td><strong>${escapeHtml(v.codigo)}</strong></td>
+      <td>${escapeHtml(v.nombre)}</td>
+      <td>${v.cantidad}</td>
+      <td>${fmtMoney(v.precioUnitario)}</td>
+      <td><strong>${fmtMoney(v.total)}</strong></td>
+      <td>${PAYMENT_LABELS[v.metodoPago] || v.metodoPago}</td>
+      <td><button class="btn-icon" title="Eliminar" data-delete-venta="${v.id}">🗑️</button></td>
+    </tr>
+  `).join('');
+
+  const totalMonto = db.ventas.reduce((sum, v) => sum + v.total, 0);
+  summary.textContent = `${db.ventas.length} venta${db.ventas.length === 1 ? '' : 's'} · ${fmtMoney(totalMonto)} en total`;
 }
 
 /* -------------------------------------------------------------------------
@@ -629,6 +739,7 @@ const VIEW_TITLES = {
   escaner: 'Escanear',
   productos: 'Productos',
   categorias: 'Categorías',
+  ventas: 'Ventas',
   historial: 'Historial',
   config: 'Configuración'
 };
@@ -644,6 +755,7 @@ function showView(name){
 
   if(name === 'productos') renderProductos();
   if(name === 'categorias') renderCategorias();
+  if(name === 'ventas') renderVentas();
   if(name === 'historial') renderHistorial();
   if(name === 'escaner'){
     document.getElementById('scanResult').innerHTML = '';
@@ -717,6 +829,40 @@ const OCR_MODES = {
 };
 
 let scanCodeMode = 'numerico';
+
+// El recuadro punteado en pantalla (CSS .ocr-guide) está definido como
+// porcentajes del contenedor visible, pero el <video> se muestra con
+// object-fit:cover (recorta y escala la imagen nativa de la cámara para
+// llenar el contenedor). Si calculamos el recorte a analizar usando
+// porcentajes directos sobre videoWidth/videoHeight, NO coincide con lo que
+// el recuadro punteado muestra en pantalla — por eso "escaneaba todo lo que
+// la cámara ve". Esta función calcula primero qué parte del video nativo es
+// la que realmente se ve en el contenedor, y recién ahí aplica el porcentaje
+// del recuadro sobre esa parte visible.
+// IMPORTANTE: estos porcentajes deben coincidir con los de .ocr-guide en styles.css
+const GUIDE_BOX = { left: 0.15, right: 0.15, top: 0.35, bottom: 0.35 };
+
+function getGuideBoxCropRect(videoEl, box){
+  box = box || GUIDE_BOX;
+  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+  const containerW = videoEl.clientWidth || vw;
+  const containerH = videoEl.clientHeight || vh;
+
+  // object-fit:cover -> la imagen se escala para cubrir el contenedor,
+  // recortando el excedente en un solo eje
+  const coverScale = Math.max(containerW / vw, containerH / vh);
+  const visibleW = containerW / coverScale;
+  const visibleH = containerH / coverScale;
+  const offsetX = (vw - visibleW) / 2;
+  const offsetY = (vh - visibleH) / 2;
+
+  const boxW = visibleW * (1 - box.left - box.right);
+  const boxH = visibleH * (1 - box.top - box.bottom);
+  const boxX = offsetX + visibleW * box.left;
+  const boxY = offsetY + visibleH * box.top;
+
+  return { x: boxX, y: boxY, w: boxW, h: boxH };
+}
 
 const OCR_INTERVAL_MS = 600;
 
@@ -890,19 +1036,17 @@ async function runOcrCapture(){
 
   ocrBusy = true;
   try{
-    // Recorta una franja pequeña y central para enfocar la etiqueta (~20cm)
-    const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
-    const cropW = vw * 0.7, cropH = vh * 0.26;
-    const cropX = (vw - cropW) / 2, cropY = (vh - cropH) / 2;
+    // Recorta exactamente lo que se ve dentro del recuadro punteado (~5cm de distancia)
+    const crop = getGuideBoxCropRect(videoEl);
 
     // Escala x2 el recorte: los códigos son pequeños en la imagen original
     // y una imagen más grande mejora mucho la precisión del OCR.
     const scale = 2;
-    canvasEl.width = cropW * scale;
-    canvasEl.height = cropH * scale;
+    canvasEl.width = crop.w * scale;
+    canvasEl.height = crop.h * scale;
     const ctx = canvasEl.getContext('2d');
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, canvasEl.width, canvasEl.height);
+    ctx.drawImage(videoEl, crop.x, crop.y, crop.w, crop.h, 0, 0, canvasEl.width, canvasEl.height);
     preprocessCanvas(canvasEl);
 
     setOcrStatus('🔎 Analizando etiqueta...');
@@ -953,16 +1097,15 @@ async function captureShot(){
   ocrPaused = true;
   if(ocrTimer){ clearTimeout(ocrTimer); ocrTimer = null; }
 
-  const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
-  // Margen más generoso que el escaneo continuo: el usuario ya encuadró y confirmó
-  const cropW = vw * 0.85, cropH = vh * 0.4;
-  const cropX = (vw - cropW) / 2, cropY = (vh - cropH) / 2;
+  // Usa el mismo recuadro punteado que se ve en pantalla: lo que captura
+  // debe ser exactamente lo que el usuario ve encuadrado, ni más ni menos.
+  const crop = getGuideBoxCropRect(videoEl);
   const scale = 2.2;
-  canvasEl.width = cropW * scale;
-  canvasEl.height = cropH * scale;
+  canvasEl.width = crop.w * scale;
+  canvasEl.height = crop.h * scale;
   const ctx = canvasEl.getContext('2d');
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(videoEl, cropX, cropY, cropW, cropH, 0, 0, canvasEl.width, canvasEl.height);
+  ctx.drawImage(videoEl, crop.x, crop.y, crop.w, crop.h, 0, 0, canvasEl.width, canvasEl.height);
 
   // Muestra la foto congelada (antes del preprocesamiento) para dar la sensación de "captura"
   frozenImg.src = canvasEl.toDataURL('image/jpeg', 0.85);
@@ -1121,6 +1264,20 @@ function setupEventListeners(){
     input.value = '';
     renderCategorias();
     toast('Categoría agregada', 'success');
+  });
+
+  // Ventas
+  document.getElementById('formVenta').addEventListener('submit', handleVentaSubmit);
+  document.querySelectorAll('[data-payment-method]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('[data-payment-method]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('vMetodoPago').value = btn.dataset.paymentMethod;
+    });
+  });
+  document.querySelector('#ventasTable tbody').addEventListener('click', (e)=>{
+    const delId = e.target.closest('[data-delete-venta]')?.dataset.deleteVenta;
+    if(delId) deleteVenta(delId);
   });
 
   // Historial
