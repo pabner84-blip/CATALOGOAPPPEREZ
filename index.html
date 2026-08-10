@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockFerre — Consulta de Productos</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-icon">🧰</span>
+    <div class="brand-text">
+      <strong>StockFerre</strong>
+      <small>Consulta de productos</small>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-view="escaner"><span>📷</span> Escanear</button>
+    <button class="nav-item" data-view="productos"><span>📦</span> Productos</button>
+    <button class="nav-item" data-view="categorias"><span>🗂️</span> Categorías</button>
+    <button class="nav-item" data-view="config"><span>⚙️</span> Configuración</button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <small id="sidebarProductCount">0 productos · Datos locales</small>
+  </div>
+</aside>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ============ MAIN ============ -->
+<div class="main-wrap">
+  <header class="topbar">
+    <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menú">☰</button>
+    <h1 id="viewTitle">Escanear</h1>
+  </header>
+
+  <main class="content" id="content">
+
+    <!-- ---------- ESCÁNER (pantalla principal) ---------- -->
+    <section class="view active" id="view-escaner">
+      <div class="scan-mode-tabs">
+        <button class="scan-tab active" data-scan-code-mode="numerico">🔢 Código numérico</button>
+        <button class="scan-tab" data-scan-code-mode="alfanumerico">🔤 Código alfanumérico</button>
+      </div>
+
+      <div class="scan-manual">
+        <input type="text" id="manualCodeInput" class="input" placeholder="Escribe el código y presiona Enter (ej: HNV3445)" autocomplete="off">
+        <button class="btn btn-primary" id="btnManualCodeGo">Buscar</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h3>📷 Cámara</h3>
+        </div>
+        <div class="panel-body">
+          <div id="ocr-reader" class="ocr-reader">
+            <video id="ocrVideo" autoplay playsinline muted></video>
+            <canvas id="ocrCanvas" style="display:none;"></canvas>
+            <img id="ocrFrozenImg" class="ocr-frozen" alt="Foto capturada">
+            <div class="ocr-guide"></div>
+            <div class="ocr-status" id="ocrStatus">Iniciando cámara...</div>
+          </div>
+          <div class="scan-capture-row">
+            <button class="btn btn-secondary" id="btnCaptureShot">📸 Capturar foto</button>
+            <button class="btn btn-secondary" id="btnResumeLive" style="display:none;">🔄 Volver a cámara en vivo</button>
+          </div>
+          <p class="hint">Acerca el código a ~20 cm del recuadro. Si se mueve y no lee bien, toca "Capturar foto" para congelar la imagen y analizarla con calma.</p>
+        </div>
+      </div>
+
+      <div id="scanResult"></div>
+    </section>
+
+    <!-- ---------- PRODUCTOS ---------- -->
+    <section class="view" id="view-productos">
+      <div class="toolbar">
+        <input type="text" id="prodSearch" class="input" placeholder="🔍 Buscar por nombre, código o marca...">
+        <select id="prodFilterCategoria" class="input select"><option value="">Todas las categorías</option></select>
+        <button class="btn btn-primary" id="btnNewProduct">+ Nuevo producto</button>
+        <button class="btn btn-secondary" id="btnImportProducts">📥 Importar CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table" id="productsTable">
+          <thead>
+            <tr>
+              <th>Código</th><th>Descripción</th><th>Marca</th><th>Categoría</th>
+              <th>P. Compra</th><th>P. Marca</th><th>P. Venta</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- CATEGORÍAS ---------- -->
+    <section class="view" id="view-categorias">
+      <div class="toolbar">
+        <input type="text" id="newCategoryInput" class="input" placeholder="Nombre de nueva categoría...">
+        <button class="btn btn-primary" id="btnAddCategory">+ Agregar categoría</button>
+      </div>
+      <div class="cards-grid" id="categoriesGrid"></div>
+    </section>
+
+    <!-- ---------- CONFIGURACIÓN ---------- -->
+    <section class="view" id="view-config">
+      <div class="panels-grid">
+        <div class="panel">
+          <div class="panel-header"><h3>📂 Importar productos (CSV)</h3></div>
+          <div class="panel-body">
+            <p class="hint">Formato: <code>CODIGO,DESCRIPCION,MARCA,CATEGORIA,PRECIO COMPRA,PRECIO VENTA</code>. Acepta CSV separado por comas o por punto y coma (el que usa Excel en español).</p>
+            <button class="btn btn-secondary" id="btnImportProductsConfig">📥 Elegir archivo CSV</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>💾 Backup (JSON)</h3></div>
+          <div class="panel-body">
+            <p class="hint">Exporta o restaura una copia completa de tus productos y categorías.</p>
+            <div class="toolbar" style="margin-bottom:0;">
+              <button class="btn btn-primary" id="btnExportBackup">📤 Exportar backup</button>
+              <button class="btn btn-secondary" id="btnImportBackup">📥 Restaurar backup</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>⚠️ Zona de riesgo</h3></div>
+          <div class="panel-body">
+            <p class="hint">Esto borra todos los productos y categorías guardados en este dispositivo.</p>
+            <button class="btn btn-danger" id="btnFactoryReset">🗑️ Borrar todos los datos</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-backdrop" id="modalBackdrop"></div>
+
+<!-- Product Form Modal -->
+<div class="modal" id="modalProducto">
+  <div class="modal-header">
+    <h3 id="modalProductoTitle">Nuevo producto</h3>
+    <button class="modal-close" data-close-modal>✕</button>
+  </div>
+  <div class="modal-body">
+    <form id="formProducto" class="form-grid">
+      <input type="hidden" id="pId">
+      <label>Código *<input type="text" id="pCodigo" class="input" required></label>
+      <label>Descripción *<input type="text" id="pNombre" class="input" required></label>
+      <label>Marca<input type="text" id="pMarca" class="input"></label>
+      <label>Categoría<input type="text" id="pCategoria" class="input" list="categoriasList" placeholder="Elige o escribe una nueva"></label>
+      <datalist id="categoriasList"></datalist>
+      <label>Precio de compra<input type="number" id="pPrecioCompra" class="input" step="0.01" min="0"></label>
+      <label>Precio de marca<input type="number" id="pPrecioMarca" class="input" step="0.01" min="0"></label>
+      <label>Precio de venta<input type="number" id="pPrecioVenta" class="input" step="0.01" min="0"></label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-close-modal>Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Modal (generic) -->
+<div class="modal modal-sm" id="modalConfirm">
+  <div class="modal-header">
+    <h3 id="confirmTitle">Confirmar</h3>
+    <button class="modal-close" data-close-modal>✕</button>
+  </div>
+  <div class="modal-body">
+    <p id="confirmMessage"></p>
+    <div class="form-actions">
+      <button class="btn btn-danger" id="confirmAcceptBtn">Confirmar</button>
+      <button class="btn btn-secondary" data-close-modal>Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="fileImportProducts" accept=".csv" hidden>
+<input type="file" id="fileImportBackup" accept=".json" hidden>
+
+<script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+<script src="app.js"></script>
+</body>
+</html>
