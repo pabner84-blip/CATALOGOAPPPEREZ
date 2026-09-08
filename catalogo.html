@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CATALOGO 2026</title>
+<style>
+  :root{
+    --fondo-1:#0b1026;
+    --fondo-2:#141b3d;
+    --tarjeta:#1a2145;
+    --tarjeta-2:#202a55;
+    --texto:#eef1ff;
+    --texto-suave:#a8b0d8;
+    --acento:#ff8a2a;
+    --acento-2:#ffb347;
+    --tecno:#22d3ee;
+    --verde:#22c55e;
+    --borde:rgba(255,255,255,.08);
+    --sombra:0 20px 45px rgba(0,0,0,.45);
+    --radio:18px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    color:var(--texto);
+    background:
+      radial-gradient(1000px 500px at 85% -10%, rgba(255,138,42,.16), transparent 60%),
+      radial-gradient(800px 400px at -10% 110%, rgba(34,211,238,.12), transparent 60%),
+      linear-gradient(160deg, var(--fondo-1), var(--fondo-2));
+    background-attachment:fixed;
+    min-height:100vh;
+    padding:0 18px 60px;
+  }
+
+  /* ---------- Cabecera ---------- */
+  .hero{
+    text-align:center;
+    padding:40px 12px 22px;
+  }
+  .hero .logo{
+    display:inline-flex; align-items:center; gap:12px;
+    font-size:38px; font-weight:900; letter-spacing:1px;
+    background:linear-gradient(90deg,#fff,#ffd9b3);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 6px 30px rgba(255,138,42,.3);
+  }
+  .hero .logo .icono{ font-size:42px; filter:drop-shadow(0 6px 14px rgba(255,138,42,.5)); }
+  .hero p{ margin-top:8px; color:var(--texto-suave); font-size:15px; }
+
+  /* ---------- Zona de carga (backup) ---------- */
+  .cargador{
+    max-width:640px; margin:22px auto 0;
+    border:2px dashed rgba(255,138,42,.45);
+    border-radius:22px;
+    padding:34px 22px;
+    text-align:center;
+    background:rgba(255,255,255,.03);
+    cursor:pointer;
+    transition:transform .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .cargador:hover, .cargador.dragging{
+    border-color:var(--acento);
+    background:rgba(255,138,42,.07);
+    transform:translateY(-2px);
+  }
+  .cargador.dragging{ transform:scale(1.02); }
+  .cargador .big{ font-size:52px; line-height:1; }
+  .cargador h2{ margin:10px 0 6px; font-size:20px; }
+  .cargador p{ color:var(--texto-suave); font-size:14px; }
+  .cargador .btn{
+    margin-top:16px; display:inline-block;
+    padding:12px 26px; border:none; border-radius:999px; cursor:pointer;
+    font-size:15px; font-weight:700; color:#fff;
+    background:linear-gradient(135deg,var(--acento),var(--acento-2));
+    box-shadow:0 10px 24px rgba(255,138,42,.35);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .cargador .btn:hover{ transform:translateY(-2px); box-shadow:0 14px 30px rgba(255,138,42,.5); }
+  #fileInput{ display:none; }
+
+  /* ---------- Barra de herramientas ---------- */
+  .toolbar{
+    max-width:1150px; margin:26px auto 0;
+    display:flex; flex-wrap:wrap; align-items:center; gap:12px;
+  }
+  .busqueda{ flex:1 1 320px; position:relative; }
+  .busqueda .lupa{
+    position:absolute; left:16px; top:50%; transform:translateY(-50%);
+    color:var(--texto-suave); font-size:17px; pointer-events:none;
+  }
+  #buscador{
+    width:100%; padding:14px 16px 14px 46px;
+    border:1px solid var(--borde); border-radius:999px;
+    background:rgba(255,255,255,.06); color:var(--texto);
+    font-size:16px; outline:none;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  #buscador:focus{ border-color:var(--acento); background:rgba(255,255,255,.09); }
+  #buscador::placeholder{ color:var(--texto-suave); }
+  .toolbar select{
+    padding:13px 18px; border:1px solid var(--borde); border-radius:999px;
+    background:rgba(255,255,255,.06); color:var(--texto); font-size:14px; outline:none;
+    cursor:pointer;
+  }
+  .toolbar .actualizar{
+    padding:13px 20px; border:1px solid rgba(34,211,238,.5); border-radius:999px;
+    background:rgba(34,211,238,.1); color:var(--tecno);
+    font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;
+    transition:background .15s ease, transform .15s ease;
+  }
+  .toolbar .actualizar:hover{ background:rgba(34,211,238,.22); transform:translateY(-1px); }
+  .toolbar .contador{ margin-left:auto; font-size:14px; color:var(--texto-suave); }
+  .toolbar .contador b{ color:var(--acento-2); }
+
+  .stats{
+    max-width:1150px; margin:16px auto 0;
+    display:flex; gap:14px; flex-wrap:wrap;
+  }
+  .stats .chip{
+    padding:8px 16px; border-radius:999px;
+    background:rgba(255,255,255,.05); border:1px solid var(--borde);
+    font-size:13px; color:var(--texto-suave);
+  }
+  .stats .chip b{ color:var(--texto); }
+
+  /* ---------- Cuadrícula de productos ---------- */
+  #grid{
+    max-width:1150px; margin:22px auto 0;
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(215px,1fr));
+    gap:20px;
+  }
+  .card{
+    background:linear-gradient(165deg,var(--tarjeta),var(--tarjeta-2));
+    border:1px solid var(--borde);
+    border-radius:var(--radio);
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    box-shadow:0 8px 20px rgba(0,0,0,.25);
+    cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    animation:aparecer .35s ease both;
+  }
+  @keyframes aparecer{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .card:hover{
+    transform:translateY(-6px);
+    box-shadow:var(--sombra);
+    border-color:rgba(255,138,42,.4);
+  }
+  .card .foto{
+    position:relative; width:100%; aspect-ratio:1/1;
+    background:#0e1430; overflow:hidden;
+  }
+  .card .foto img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    transition:transform .3s ease;
+  }
+  .card:hover .foto img{ transform:scale(1.08); }
+  .card .foto .placeholder{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:64px; font-weight:800; color:rgba(255,255,255,.35);
+    background:
+      radial-gradient(120% 120% at 20% 10%, rgba(255,138,42,.22), transparent 55%),
+      radial-gradient(120% 120% at 90% 90%, rgba(34,211,238,.18), transparent 55%),
+      #101633;
+  }
+  .card .info{ padding:14px 14px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
+  .card .codigo{
+    font-size:11.5px; font-weight:700; letter-spacing:.6px;
+    color:var(--tecno); text-transform:uppercase;
+  }
+  .card .nombre{
+    font-size:15px; font-weight:600; line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    min-height:40px; flex:1;
+  }
+  .card .marca{
+    align-self:flex-start;
+    padding:4px 10px; border-radius:999px;
+    font-size:11.5px; font-weight:700; letter-spacing:.3px;
+    background:rgba(255,255,255,.07); border:1px solid var(--borde);
+    color:var(--texto-suave);
+  }
+  .card .precio{
+    margin-top:4px; align-self:flex-start;
+    padding:8px 14px; border-radius:12px;
+    font-size:18px; font-weight:800;
+    background:linear-gradient(135deg,rgba(255,138,42,.22),rgba(255,138,42,.05));
+    border:1px solid rgba(255,138,42,.4);
+    color:var(--acento-2);
+  }
+
+  /* ---------- Estados ---------- */
+  .vacio{
+    max-width:640px; margin:60px auto; text-align:center; color:var(--texto-suave);
+  }
+  .vacio .big{ font-size:54px; }
+  .vacio h3{ margin:10px 0 6px; color:var(--texto); font-size:20px; }
+  #mensajeCarga{ display:none; }
+
+  /* ---------- Modal de producto ---------- */
+  .modal{
+    position:fixed; inset:0; z-index:50;
+    background:rgba(5,8,25,.92);
+    display:none; align-items:center; justify-content:center;
+    padding:20px;
+    backdrop-filter:blur(6px);
+  }
+  .modal.visible{ display:flex; animation:aparecer .2s ease; }
+  .modal .caja{
+    width:100%; max-width:860px; max-height:90vh; overflow-y:auto;
+    background:linear-gradient(165deg,var(--tarjeta),var(--tarjeta-2));
+    border:1px solid var(--borde); border-radius:22px;
+    box-shadow:var(--sombra);
+    display:grid; grid-template-columns:1fr 1fr;
+    position:relative;
+  }
+  .modal .cerrar{
+    position:absolute; top:14px; right:14px; z-index:2;
+    width:40px; height:40px; border-radius:50%;
+    border:1px solid var(--borde); background:rgba(255,255,255,.08);
+    color:#fff; font-size:16px; cursor:pointer;
+    transition:background .15s ease;
+  }
+  .modal .cerrar:hover{ background:rgba(255,138,42,.35); }
+  .modal .foto{
+    min-height:300px; background:#0e1430; overflow:hidden;
+  }
+  .modal .foto img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .modal .foto .placeholder{
+    width:100%; height:100%; min-height:300px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:120px; font-weight:800; color:rgba(255,255,255,.35);
+    background:
+      radial-gradient(120% 120% at 20% 10%, rgba(255,138,42,.22), transparent 55%),
+      radial-gradient(120% 120% at 90% 90%, rgba(34,211,238,.18), transparent 55%),
+      #101633;
+  }
+  .modal .info{
+    padding:26px 26px 28px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .modal .info .codigo-tag{
+    align-self:flex-start;
+    padding:6px 14px; border-radius:999px;
+    font-size:12px; font-weight:700; letter-spacing:.8px;
+    background:rgba(34,211,238,.12); border:1px solid rgba(34,211,238,.4);
+    color:var(--tecno); text-transform:uppercase;
+  }
+  .modal .info h2{ font-size:22px; font-weight:800; line-height:1.3; }
+  .modal .info .filas{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+  .modal .info .fila{
+    display:flex; justify-content:space-between; gap:14px;
+    padding:10px 14px; border-radius:12px;
+    background:rgba(255,255,255,.04); border:1px solid var(--borde);
+    font-size:14px;
+  }
+  .modal .info .fila span:first-child{ color:var(--texto-suave); white-space:nowrap; }
+  .modal .info .fila span:last-child{ text-align:right; color:var(--texto); font-weight:600; word-break:break-word; }
+  .modal .info .precio-grande{
+    margin-top:8px;
+    padding:18px 22px; border-radius:16px;
+    font-size:32px; font-weight:900;
+    background:linear-gradient(135deg,rgba(255,138,42,.25),rgba(255,138,42,.06));
+    border:1px solid rgba(255,138,42,.5);
+    color:var(--acento-2); text-align:center;
+  }
+
+  footer{
+    text-align:center; margin-top:48px; color:var(--texto-suave); font-size:13px;
+  }
+  @media (max-width:640px){
+    .hero .logo{ font-size:26px; }
+    #grid{ grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); gap:12px; }
+    .card .precio{ font-size:15px; }
+    .modal .caja{ grid-template-columns:1fr; max-height:100vh; }
+    .modal .foto{ min-height:220px; }
+    .modal .foto .placeholder{ min-height:220px; font-size:90px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="logo"><span class="icono">🛒</span>CATALOGO 2026</div>
+  </header>
+
+  <!-- Zona para subir el backup (solo si no hay uno guardado) -->
+  <div class="cargador" id="zona">
+    <div class="big">📦</div>
+    <h2>Arrastra aquí tu backup</h2>
+    <p>El archivo es el mismo que generas al presionar <b>📤 Exportar backup</b> en la app (archivo <b>.json</b>). Se guarda aquí para no tener que cargarlo de nuevo.</p>
+    <button type="button" class="btn" id="btnElegir">Elegir archivo</button>
+    <input type="file" id="fileInput" accept=".json,application/json">
+  </div>
+
+  <!-- Barra de herramientas (aparece al cargar) -->
+  <div id="mensajeCarga">
+    <div class="toolbar">
+      <div class="busqueda">
+        <span class="lupa">🔍</span>
+        <input type="text" id="buscador" placeholder="Buscar por código, nombre o marca (ej. truper)..." autocomplete="off">
+      </div>
+      <select id="orden">
+        <option value="original">Orden original</option>
+        <option value="nombre">Nombre A → Z</option>
+        <option value="menor">Precio menor → mayor</option>
+        <option value="mayor">Precio mayor → menor</option>
+      </select>
+      <button type="button" class="actualizar" id="btnActualizar">🔄 Actualizar backup</button>
+      <span class="contador"><b id="nTotal">0</b> productos</span>
+    </div>
+    <div class="stats">
+      <span class="chip">Mostrando <b id="nMostrados">0</b></span>
+      <span class="chip">Con foto <b id="nFoto">0</b></span>
+    </div>
+  </div>
+
+  <div id="grid"></div>
+
+  <div class="vacio" id="sinDatos" style="display:none">
+    <div class="big">🔎</div>
+    <h3>Nada por aquí</h3>
+    <p>No hay productos que coincidan con la búsqueda.</p>
+  </div>
+
+  <footer>Los datos quedan guardados en este navegador · usa “Actualizar backup” cuando cambies el catálogo</footer>
+
+  <!-- Modal de producto -->
+  <div class="modal" id="modal">
+    <div class="caja">
+      <button class="cerrar" id="btnCerrar">✕</button>
+      <div class="foto" id="modalFoto"></div>
+      <div class="info" id="modalInfo"></div>
+    </div>
+  </div>
+
+<script>
+// Función global para las imágenes que no cargan (fallback al marcador).
+function imgFallback(el, iniciales){
+  try{
+    const foto = (el && el.closest) ? el.closest('.foto') : null;
+    if(!foto) return;
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    ph.textContent = iniciales;
+    foto.innerHTML = '';
+    foto.appendChild(ph);
+  }catch(e){ /* ignorar */ }
+}
+(function(){
+  'use strict';
+  let productos = [];
+  let imgs = {};
+  let imgUrls = {};
+
+  const zona = document.getElementById('zona');
+  const fileInput = document.getElementById('fileInput');
+  const btnElegir = document.getElementById('btnElegir');
+  const btnActualizar = document.getElementById('btnActualizar');
+  const mensaje = document.getElementById('mensajeCarga');
+  const grid = document.getElementById('grid');
+  const buscador = document.getElementById('buscador');
+  const orden = document.getElementById('orden');
+  const sinDatos = document.getElementById('sinDatos');
+  const nTotal = document.getElementById('nTotal');
+  const nMostrados = document.getElementById('nMostrados');
+  const nFoto = document.getElementById('nFoto');
+
+  /* ---------- Persistencia del backup ---------- */
+  const DB_NAME = 'stockferre_catalogo_web_v2';
+  const STORE = 'backup';
+  let idb = null;
+
+  function abrirDB(){
+    return new Promise((resolve,reject)=>{
+      if(idb){ resolve(idb); return; }
+      if(typeof indexedDB === 'undefined'){ reject(new Error('IndexedDB no disponible')); return; }
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = (e)=>{
+        const d = e.target.result;
+        if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+      };
+      req.onsuccess = ()=>{ idb = req.result; resolve(idb); };
+      req.onerror = ()=> reject(req.error || new Error('IndexedDB error'));
+    });
+  }
+
+  function guardarBackup(obj){
+    return abrirDB().then(d=> new Promise((resolve)=>{
+      const tx = d.transaction(STORE,'readwrite');
+      tx.objectStore(STORE).put(obj, 'actual');
+      tx.oncomplete = ()=> resolve(true);
+      tx.onerror = ()=> resolve(false);
+    })).catch(()=> false);
+  }
+
+  function leerBackup(){
+    return abrirDB().then(d=> new Promise((resolve)=>{
+      const tx = d.transaction(STORE,'readonly');
+      const r = tx.objectStore(STORE).get('actual');
+      r.onsuccess = ()=> resolve(r.result || null);
+      r.onerror = ()=> resolve(null);
+    })).catch(()=> null);
+  }
+
+  /* ---------- Carga del archivo ---------- */
+  btnElegir.addEventListener('click', (e)=>{ e.stopPropagation(); fileInput.click(); });
+  zona.addEventListener('click', ()=> fileInput.click());
+  btnActualizar.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', ()=>{
+    if(fileInput.files && fileInput.files[0]) cargar(fileInput.files[0]);
+    fileInput.value = '';
+  });
+  ['dragenter','dragover'].forEach(ev => zona.addEventListener(ev, (e)=>{
+    e.preventDefault(); zona.classList.add('dragging');
+  }));
+  ['dragleave','drop'].forEach(ev => zona.addEventListener(ev, (e)=>{
+    e.preventDefault(); zona.classList.remove('dragging');
+  }));
+  zona.addEventListener('drop', (e)=>{
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) cargar(f);
+  });
+
+  function cargar(file){
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const parsed = JSON.parse(e.target.result);
+        if(!parsed || !Array.isArray(parsed.productos)){
+          alert('Ese archivo no parece un backup válido (no tiene la lista de productos).');
+          return;
+        }
+        aplicar(parsed);
+        guardarBackup(parsed); // se guarda para no volver a cargarlo
+        alert('✅ Backup cargado y guardado. Ya puedes cerrar esta página y volver cuando quieras.');
+      }catch(err){
+        alert('No se pudo leer el archivo. Asegúrate de elegir el backup .json exportado desde la app.');
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  // Arranque: si ya hay un backup guardado, se carga solo.
+  leerBackup().then(saved => {
+    if(saved && Array.isArray(saved.productos) && saved.productos.length){
+      aplicar(saved);
+    }
+  });
+
+  function aplicar(parsed){
+    productos = parsed.productos || [];
+    imgs = (parsed.imagenes && typeof parsed.imagenes === 'object') ? parsed.imagenes : {};
+    imgUrls = (parsed.imgUrl && typeof parsed.imgUrl === 'object') ? parsed.imgUrl : {};
+    zona.style.display = 'none';
+    mensaje.style.display = 'block';
+    sinDatos.style.display = 'none';
+    render();
+  }
+
+  /* ---------- Datos ---------- */
+  function imagenDe(p){
+    if(!p || !p.id) return '';
+    let arr = imgs[p.id];
+    if(arr && !Array.isArray(arr)) arr = [arr];
+    if(Array.isArray(arr) && arr.length) return arr[0] || '';
+    let urls = imgUrls[p.id];
+    if(urls && !Array.isArray(urls)) urls = [urls];
+    return (Array.isArray(urls) && urls.length) ? (urls[0] || '') : '';
+  }
+
+  function precio(p){
+    const v = parseFloat(p && p.precioVenta);
+    return (typeof v === 'number' && !isNaN(v)) ? v : 0;
+  }
+
+  function formatearBs(v){
+    return 'Bs ' + v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function textoNormal(s){
+    return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // La búsqueda filtra por TODAS las palabras que escribes (en código, nombre,
+  // marca, características y categoría): "martillo" muestra todos los martillos;
+  // "martillo truper" muestra los martillos que además son de la marca Truper;
+  // "martillo ingco" los de Ingco; y así con cualquier marca.
+  function coincide(p, q){
+    const hay = textoNormal(p.codigo) + ' ' + textoNormal(p.nombre) + ' ' + textoNormal(p.marca) + ' ' + textoNormal(p.caracteristicas) + ' ' + textoNormal(p.categoria);
+    return q.split(/\s+/).every(tok => tok === '' || hay.indexOf(tok) !== -1);
+  }
+
+  function lista(){
+    const q = textoNormal(buscador.value);
+    let arr = q ? productos.filter(p => coincide(p, q)) : productos.slice();
+    const o = orden.value;
+    if(o === 'nombre'){
+      arr.sort((a,b)=> textoNormal(a.nombre).localeCompare(textoNormal(b.nombre), 'es'));
+    }else if(o === 'menor'){
+      arr.sort((a,b)=> precio(a) - precio(b));
+    }else if(o === 'mayor'){
+      arr.sort((a,b)=> precio(b) - precio(a));
+    }
+    return arr;
+  }
+
+  /* ---------- Render ---------- */
+  function render(){
+    nTotal.textContent = productos.length;
+    const arr = lista();
+    nMostrados.textContent = arr.length;
+    const conFoto = arr.filter(p => imagenDe(p)).length;
+    nFoto.textContent = conFoto;
+
+    if(arr.length === 0){
+      grid.innerHTML = '';
+      sinDatos.style.display = 'block';
+      return;
+    }
+    sinDatos.style.display = 'none';
+
+    const frag = document.createDocumentFragment();
+    arr.forEach((p, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.animationDelay = Math.min(i * 18, 400) + 'ms';
+      card.dataset.id = p.id || '';
+      card.innerHTML = fotoHtml(p) + infoHtml(p);
+      frag.appendChild(card);
+    });
+    grid.innerHTML = '';
+    grid.appendChild(frag);
+  }
+
+  function fotoHtml(p){
+    const img = imagenDe(p);
+    if(!img){
+      return `<div class="foto"><div class="placeholder">${iniciales(p)}</div></div>`;
+    }
+    return `<div class="foto"><img src="${esc(img)}" alt="${esc(p.nombre)}" loading="lazy" decoding="async" onerror="imgFallback(this,'${iniciales(p)}')"></div>`;
+  }
+
+  function infoHtml(p){
+    const marca = (p.marca && String(p.marca).trim())
+      ? `<span class="marca">${esc(p.marca)}</span>`
+      : '';
+    return `<div class="info">
+      <span class="codigo">${esc(p.codigo)}</span>
+      <span class="nombre">${esc(p.nombre)}</span>
+      ${marca}
+      <span class="precio">${formatearBs(precio(p))}</span>
+    </div>`;
+  }
+
+  function iniciales(p){
+    const n = String(p.nombre || '').trim();
+    if(!n) return '●';
+    const partes = n.split(/\s+/);
+    return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
+  }
+
+  /* ---------- Búsqueda y orden ---------- */
+  let t = null;
+  buscador.addEventListener('input', ()=>{
+    clearTimeout(t);
+    t = setTimeout(render, 120);
+  });
+  orden.addEventListener('change', render);
+
+  /* ---------- Modal de detalle ---------- */
+  const modal = document.getElementById('modal');
+  const modalFoto = document.getElementById('modalFoto');
+  const modalInfo = document.getElementById('modalInfo');
+  const btnCerrar = document.getElementById('btnCerrar');
+
+  grid.addEventListener('click', (e)=>{
+    const card = e.target.closest('.card');
+    if(!card) return;
+    const p = productos.find(x => String(x.id) === String(card.dataset.id));
+    if(p) abrirModal(p);
+  });
+
+  function abrirModal(p){
+    const img = imagenDe(p);
+    if(img){
+      modalFoto.innerHTML = `<img src="${esc(img)}" alt="${esc(p.nombre)}" onerror="imgFallback(this,'${iniciales(p)}')">`;
+    }else{
+      modalFoto.innerHTML = `<div class="placeholder">${iniciales(p)}</div>`;
+    }
+
+    const fila = (label, val) => (val !== undefined && val !== null && String(val).trim() !== '')
+      ? `<div class="fila"><span>${label}</span><span>${esc(val)}</span></div>`
+      : '';
+    modalInfo.innerHTML = `
+      <span class="codigo-tag">${esc(p.codigo)}</span>
+      <h2>${esc(p.nombre)}</h2>
+      <div class="filas">
+        ${fila('Marca', p.marca)}
+        ${fila('Código de barras', p.codigoBarras)}
+        ${fila('Categoría', p.categoria)}
+        ${fila('Características', p.caracteristicas)}
+      </div>
+      <div class="precio-grande">${formatearBs(precio(p))}</div>
+    `;
+    modal.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function cerrar(){
+    modal.classList.remove('visible');
+    modalFoto.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+  btnCerrar.addEventListener('click', (e)=>{ e.stopPropagation(); cerrar(); });
+  modal.addEventListener('click', (e)=>{ if(e.target === modal) cerrar(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') cerrar(); });
+})();
+</script>
+</body>
+</html>
