@@ -1,0 +1,942 @@
+:root{
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --primary-light:#3b82f6;
+  --success:#16a34a;
+  --success-light:#123524;
+  --danger:#dc2626;
+  --danger-light:#3a1418;
+  --warning:#d97706;
+  --warning-light:#3d2c08;
+  --bg:#000000;
+  --surface:#14161a;
+  --border:#2a2e35;
+  --text:#e7e9ee;
+  --text-muted:#9aa1ac;
+  --sidebar-bg:#0a0a0c;
+  --sidebar-text:#c9ced6;
+  --sidebar-active:#1f2937;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.4);
+  --sidebar-w:250px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+}
+button{font-family:inherit;}
+input,select{font-family:inherit;}
+
+/* ---------- LAYOUT ---------- */
+.sidebar{
+  position:fixed; top:0; left:0; height:100vh; width:var(--sidebar-w);
+  background:var(--sidebar-bg); color:var(--sidebar-text);
+  display:flex; flex-direction:column; z-index:100;
+  transition:transform .25s ease;
+}
+.sidebar-brand{display:flex; align-items:center; gap:10px; padding:20px 18px; border-bottom:1px solid rgba(255,255,255,.08);}
+.brand-icon{font-size:28px; display:flex; align-items:center; gap:5px; line-height:1;}
+.brand-text{display:flex; flex-direction:column; line-height:1.2;}
+.brand-text strong{color:#fff; font-size:16px;}
+.brand-text small{color:#9ca3af; font-size:11px;}
+/* En el modo Invitado: los logos 🛠️ ⚡ debajo de las pestañas, apilados en
+   vertical, grandes y centrados tanto horizontal como verticalmente (llenan
+   el espacio libre entre las pestañas y el pie del menú). */
+.sidebar-logos{
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  flex:1; gap:20px; padding:14px 0 26px; font-size:58px; line-height:1;
+}
+.sidebar-logos span{display:inline-block;}
+body.modo-invitado .sidebar-nav{flex:0 1 auto; min-height:0;}
+body.modo-invitado .sidebar-logos{display:flex;}
+/* Botón casita arriba, junto al nombre de la tienda (solo el ícono) */
+.btn-home{
+  margin-left:auto; background:none; border:none; cursor:pointer;
+  font-size:20px; line-height:1; padding:6px 8px; border-radius:8px;
+  color:#c9ced6;
+}
+.btn-home:hover{background:rgba(255,255,255,.10); color:#fff;}
+
+.sidebar-nav{flex:1; display:flex; flex-direction:column; padding:10px; gap:2px; overflow-y:auto;}
+.nav-item{
+  display:flex; align-items:center; gap:10px; text-align:left;
+  background:none; border:none; color:var(--sidebar-text);
+  padding:11px 12px; border-radius:8px; cursor:pointer; font-size:14px;
+}
+.nav-item span{font-size:16px; width:20px; text-align:center;}
+.nav-item:hover{background:rgba(255,255,255,.06); color:#fff;}
+.nav-item.active{background:var(--primary); color:#fff;}
+
+/* Submenú "Modo Pro": la pestaña "👑 Modo Pro" abre/cierra un grupo que se
+   desliza hacia abajo con las pestañas exclusivas (ESTADO FINANCIERO / PAGOS /
+   DEUDAS / GASTOS DEL DÍA). El resto de las pestañas del menú se ve siempre,
+   con el modo pro abierto o cerrado. */
+.nav-pro-group{display:flex; flex-direction:column;}
+.nav-pro-toggle{
+  display:flex; align-items:center; gap:10px; text-align:left;
+  background:none; border:none; color:#eab308;
+  padding:11px 12px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600;
+}
+.nav-pro-toggle .pro-arrow{margin-left:auto; font-size:12px; transition:transform .3s ease;}
+.nav-pro-toggle:hover{background:rgba(255,215,0,.10); color:#fbbf24;}
+.nav-pro-group.open .pro-arrow{transform:rotate(180deg);}
+.nav-pro-sub{
+  max-height:0; overflow:hidden; opacity:0;
+  transition:max-height .35s ease, opacity .3s ease;
+}
+.nav-pro-group.open .nav-pro-sub{max-height:280px; opacity:1;}
+.nav-pro-sub .nav-item{padding-left:28px;}
+
+/* Panel de Opciones (recuadro inferior): todo apilado, uno debajo de otro */
+.sidebar-footer{padding:14px 18px; border-top:1px solid rgba(255,255,255,.08); color:#6b7280; display:flex; flex-direction:column; gap:4px;}
+.sidebar-footer #sidebarProductCount{font-size:12px;}
+.sidebar-footer #sidebarSyncStatus{font-size:12px; margin-bottom:2px;}
+
+/* Botón "Opciones": abre/cierra el panel inferior del menú */
+#btnToggleOptions{width:100%; margin:0; font-size:14px;}
+.sidebar-options{display:none;}
+.sidebar-options.open{display:flex; flex-direction:column; gap:4px; margin-top:4px;}
+
+.sidebar-overlay{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:90;
+}
+
+.main-wrap{margin-left:var(--sidebar-w); min-height:100vh; display:flex; flex-direction:column;}
+
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:14px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:14px 22px;
+}
+.topbar h1{font-size:19px; margin:0; flex:1;}
+.hamburger{display:none; background:none; border:none; font-size:22px; cursor:pointer; color:var(--text);}
+
+.content{padding:22px; flex:1;}
+
+/* Solo la vista de escáner se limita en ancho (se ve mejor angosta); el resto usa todo el espacio disponible */
+#view-escaner{max-width:480px;}
+#view-codigobarras{max-width:480px;}
+
+.view{display:none;}
+.view.active{display:block; animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- CARDS ---------- */
+.cards-grid{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px; margin-bottom:20px;
+}
+.stat-card{
+  background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:16px; border-left:4px solid var(--primary);
+}
+.stat-card .stat-label{font-size:12.5px; color:var(--text-muted); font-weight:600;}
+.stat-card .stat-value{font-size:24px; font-weight:700; margin-top:6px; color:var(--text);}
+
+/* ---------- PANELS ---------- */
+.panels-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-bottom:16px;}
+.panel{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:16px; overflow:hidden;}
+.panel-header{padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.panel-header h3{margin:0; font-size:15px;}
+.panel-body{padding:16px 18px;}
+
+/* ---------- TOOLBAR / INPUTS ---------- */
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:16px;}
+.toolbar .hint{margin:0; color:var(--text-muted); font-size:13px; display:flex; align-items:center; gap:6px;}
+.input{
+  padding:9px 12px; border:1px solid var(--border); border-radius:8px;
+  font-size:14px; background:var(--surface); color:var(--text);
+  flex:1; min-width:140px;
+}
+.input:focus{outline:2px solid var(--primary-light); border-color:var(--primary);}
+.select{cursor:pointer; flex:none;}
+
+/* ---------- BUTTONS ---------- */
+.btn{
+  padding:9px 16px; border:none; border-radius:8px; font-size:14px; font-weight:600;
+  cursor:pointer; transition:filter .15s ease; white-space:nowrap;
+}
+.btn:hover{filter:brightness(0.94);}
+.btn:focus-visible{outline:2px solid #e5e7eb; outline-offset:2px;}
+.btn-primary{background:var(--primary); color:#fff;}
+.btn-secondary{background:#262a31; color:#e7e9ee;}
+.btn-danger{background:var(--danger); color:#fff;}
+.btn-success{background:var(--success); color:#fff;}
+.btn-sm{padding:6px 10px; font-size:12px; border-radius:6px;}
+.btn-icon{background:none; border:none; cursor:pointer; font-size:15px; padding:4px 6px; border-radius:6px;}
+.btn-icon:hover{background:var(--bg);}
+
+/* ---------- TABLE ---------- */
+.table-wrap{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); overflow-x:auto;}
+.table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:600px;}
+.table th{
+  text-align:left; padding:12px 14px; background:#16191f; color:var(--text-muted);
+  font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.02em;
+  border-bottom:1px solid var(--border); white-space:nowrap;
+}
+.table td{padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle;}
+.table tbody tr:hover{background:#171a21;}
+.table tbody tr:last-child td{border-bottom:none;}
+.table .empty-row td{text-align:center; color:var(--text-muted); padding:26px;}
+.table tfoot td{padding:11px 14px; border-top:2px solid var(--border); background:var(--bg);}
+/* Historial QR: nada se parte en dos líneas salvo la columna Producto. */
+#histQrTable th, #histQrTable td{white-space:nowrap;}
+#histQrTable td:nth-child(4){white-space:normal;}
+
+/* ---- Miniatura de imagen de producto (columna Imagen) ---- */
+.prod-img-cell{min-width:120px;}
+.prod-img-wrap{display:flex; flex-direction:column; align-items:flex-start; gap:6px; position:relative;}
+.prod-thumb{width:72px; height:72px; object-fit:cover; border-radius:8px; cursor:pointer; border:1px solid var(--border); box-shadow:var(--shadow); display:block; transition:transform .15s;}
+.prod-thumb:hover{transform:scale(1.08);}
+.prod-thumb-empty{display:flex; align-items:center; justify-content:center; background:var(--bg); font-size:20px; color:var(--text-muted); cursor:pointer; width:72px; height:72px; border-radius:8px; border:1px solid var(--border); transition:background .15s;}
+.prod-thumb-empty:hover{background:var(--border);}
+.prod-thumb-lazy{width:72px; height:72px; border-radius:8px; overflow:hidden;}
+.ajuste-qr-detalle{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+.ajuste-qr-chip{display:inline-flex; align-items:center; gap:4px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:13px; color:var(--text); font-family:inherit; cursor:pointer; transition:all .15s ease;}
+.ajuste-qr-chip:hover{border-color:var(--primary); color:var(--primary);}
+.ajuste-qr-chip.active{background:var(--primary); border-color:var(--primary); color:#fff;}
+.venta-num{color:var(--text-muted); font-size:12px;}
+
+.prod-img-count{
+  position:absolute; top:-6px; left:-6px; min-width:18px; height:18px; padding:0 5px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--primary); color:#fff; font-size:11px; font-weight:700;
+  border-radius:9px; cursor:pointer; border:2px solid var(--bg);
+}
+
+#productsTable tbody tr,
+#ventasTable tbody tr,
+#topVentasTable tbody tr,
+#pedidosTable tbody tr,
+#comprasTable tbody tr,
+#inventarioTable tbody tr,
+#scanHistoryTable tbody tr,
+#inventarioHistoryTable tbody tr{
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+  contain: layout style;
+}
+
+/* ---- Carrusel de fotos (modal de imagen y de detalles) ---- */
+.img-carousel{
+  display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x mandatory; gap:10px; padding:6px 2px;
+  scrollbar-width:none;
+}
+.img-carousel::-webkit-scrollbar{display:none;}
+.img-carousel img{
+  flex:0 0 auto; max-width:220px; max-height:220px; width:auto; height:auto;
+  border-radius:10px; border:1px solid var(--border); background:#fff;
+  scroll-snap-align:center; object-fit:contain; display:block;
+}
+.img-carousel-det img{max-width:160px; max-height:160px; margin:auto;}
+.img-carousel-info{
+  display:flex; align-items:center; justify-content:center; gap:14px; margin-top:8px;
+}
+.img-carousel-counter{
+  font-size:13px; font-weight:600; color:var(--text-muted);
+  min-width:44px; text-align:center; padding:0 2px;
+}
+.img-carousel-dots{display:inline-flex; gap:6px; align-items:center;}
+.carousel-dot{
+  width:8px; height:8px; border-radius:50%; background:var(--text-muted);
+  opacity:.4; cursor:pointer; display:inline-block;
+}
+.carousel-dot.active{opacity:1; background:var(--primary);}
+
+/* ---- Ventana de características del producto ---- */
+.detail-grid{display:flex; flex-direction:column; gap:8px;}
+.detail-row{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:8px 12px; background:var(--bg); border-radius:8px; border:1px solid var(--border);}
+.detail-label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.02em; white-space:nowrap;}
+.detail-value{font-size:14px; font-weight:600; text-align:right; word-break:break-word;}
+
+/* Recuadro blanco para escribir las características del producto */
+.detail-block{display:flex; flex-direction:column; gap:6px; margin-top:12px;}
+.detail-block .detail-label{margin:0 2px;}
+.detail-block textarea{
+  width:100%; padding:10px 12px; border:1px solid #c9ced6; border-radius:8px;
+  font-size:14px; font-family:inherit; resize:vertical; min-height:90px;
+}
+.detail-block textarea:focus{outline:2px solid var(--primary-light); border-color:var(--primary);}
+
+.badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;}
+.badge-muted{background:#262a31; color:#d1d5db;}
+.badge-success-soft{background:var(--success-light); color:#4ade80;}
+.badge-danger-soft{background:var(--danger-light); color:#fca5a5;}
+
+/* ---------- HISTORIAL ---------- */
+.history-search-row{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 0; border-bottom:1px dashed var(--border); font-size:13.5px;
+}
+.history-search-row:last-child{border-bottom:none;}
+.history-search-row small{color:var(--text-muted); white-space:nowrap;}
+
+/* ---------- MODALS ---------- */
+.modal-backdrop{display:none; position:fixed; inset:0; background:rgba(17,24,39,.55); z-index:200;}
+.modal{
+  display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:var(--surface); border-radius:14px; z-index:201; width:min(560px,92vw);
+  max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.modal.modal-sm{width:min(400px,92vw);}
+/* Ingresos: los cuadros "Registrar ingreso" e "Historial de ingresos" más
+   anchos para que entre toda la información. */
+#modalCompraDetalle{width:min(760px,95vw);}
+#modalCompraHistorial{width:min(820px,95vw);}
+.modal.modal-lg{width:min(980px,96vw); max-height:92vh;}
+.modal.modal-lg .modal-body{display:flex; flex-direction:column;}
+.modal.modal-lg .table-wrap{flex:1; min-height:0; overflow-y:auto;}
+.modal.open, .modal-backdrop.open{display:block;}
+.modal-header{
+  display:flex; align-items:center; justify-content:space-between; padding:18px 20px;
+  border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface);
+}
+.modal-header h3{margin:0; font-size:16px;}
+.modal-close{background:none; border:none; font-size:18px; cursor:pointer; color:var(--text-muted); padding:4px 8px; border-radius:6px;}
+.modal-close:hover{background:var(--bg);}
+.modal-body{padding:20px;}
+
+.form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+.form-grid label{display:flex; flex-direction:column; gap:5px; font-size:13px; font-weight:600; color:#d1d5db;}
+.form-grid .form-actions{grid-column:1/-1; display:flex; gap:10px; justify-content:flex-end; margin-top:6px;}
+.gastos-prestamos-panel .gp-form{display:flex; gap:8px; align-items:center;}
+.gastos-prestamos-panel .gp-bs-input{width:110px; flex-shrink:0;}
+.gastos-prestamos-panel .gp-obs-input{flex:1; min-width:0;}
+.gastos-prestamos-panel .gp-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-bottom:6px; background:var(--bg);}
+.gastos-prestamos-panel .gp-obs{flex:1; min-width:0; color:var(--text-muted); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.gastos-prestamos-panel .gp-tag{display:flex; align-items:center; gap:5px; font-size:12px; font-weight:600; color:var(--text-muted); cursor:pointer;}
+.gastos-prestamos-panel .gp-chk{width:15px; height:15px; accent-color:var(--accent, #22c55e); cursor:pointer;}
+.gastos-prestamos-panel .gp-modo-dot{width:13px; height:13px; border-radius:50%; border:2px solid rgba(255,255,255,.4); cursor:pointer; flex-shrink:0; transition:transform .15s, box-shadow .15s;}
+.gastos-prestamos-panel .gp-modo-dot.man{background:#f26522; box-shadow:0 0 0 2px rgba(242,101,34,.25);}
+.gastos-prestamos-panel .gp-modo-dot.el{background:#f6c000; box-shadow:0 0 0 2px rgba(246,192,0,.25);}
+.gastos-prestamos-panel .gp-modo-dot.none{background:#6b7280; box-shadow:0 0 0 2px rgba(107,114,128,.25);}
+.gastos-prestamos-panel .gp-modo-dot:hover{transform:scale(1.2);}
+.gastos-prestamos-panel .gp-modo-dot.static{cursor:default;}
+.gastos-prestamos-panel .gp-modo-dot.static:hover{transform:none;}
+.gastos-prestamos-panel .gp-legend{display:flex; align-items:center; gap:6px; font-size:12px;}
+.gastos-prestamos-panel .gp-dot-legend{display:inline-block; width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+.gastos-prestamos-panel .gp-dot-legend.man{background:#f26522;}
+.gastos-prestamos-panel .gp-dot-legend.el{background:#f6c000;}
+.gastos-prestamos-panel .gp-dot-legend.none{background:#6b7280;}
+.ventas-modo-totales{display:inline-flex; flex-wrap:wrap; gap:4px 10px; align-items:center; margin-top:4px; font-size:13px;}
+.ventas-modo-totales .modo-total.man{color:#fb923c;}
+.ventas-modo-totales .modo-total.el{color:#fde047;}
+.ventas-modo-totales .modo-total strong{font-weight:800;}
+.ventas-modo-totales .modo-total.man strong{color:#fdba74;}
+.ventas-modo-totales .modo-total.el strong{color:#fde047;}
+.gastos-prestamos-panel .gp-total{display:flex; align-items:baseline; gap:6px; padding:10px 10px 2px; border-top:1px dashed var(--border); margin-top:6px; font-size:14px;}
+.gastos-prestamos-panel .gp-total strong{font-weight:800; color:var(--primary);}
+
+/* ---------- SCANNER ---------- */
+.scan-mode-tabs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;}
+.scan-tab{
+  flex:1; min-width:110px; padding:9px 8px; border:1px solid var(--border); background:var(--bg);
+  border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-muted);
+}
+.scan-tab.active{background:var(--primary); color:#fff; border-color:var(--primary);}
+.ocr-reader{
+  border-radius:10px; overflow:hidden; margin-bottom:10px;
+  height:260px; width:100%; max-width:340px; background:#000; position:relative;
+}
+.ocr-reader video{width:100%; height:100%; object-fit:cover; display:block;}
+.ocr-frozen{
+  display:none; position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; background:#000;
+}
+.ocr-frozen.visible{display:block;}
+.ocr-guide{
+  /* Debe coincidir con GUIDE_BOX en app.js: lo que se ve aquí es exactamente lo que se analiza */
+  position:absolute; left:15%; right:15%; top:35%; bottom:35%;
+  border:2px dashed rgba(255,255,255,.9); border-radius:6px; pointer-events:none;
+}
+.ocr-status{
+  position:absolute; left:0; right:0; bottom:0; padding:8px 12px;
+  background:rgba(17,24,39,.72); color:#fff; font-size:12.5px; text-align:center;
+}
+.scan-capture-row{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
+.scan-manual{display:flex; gap:8px; margin-bottom:16px;}
+.scan-manual .input{flex:1;}
+.scan-result-card{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px;}
+.scan-result-card h4{margin:0 0 8px;}
+.scan-result-card .sr-row{display:flex; justify-content:space-between; padding:6px 0; font-size:14px; border-bottom:1px dashed var(--border);}
+.scan-result-card .sr-row:last-child{border-bottom:none;}
+.sr-head{display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center;}
+.scan-result-card .sr-head{margin-bottom:12px;}
+.sr-head h4{margin:0; word-break:break-word;}
+.scan-result-card .sr-img-wrap{flex-shrink:0;}
+.sr-img{display:block; width:180px; height:180px; object-fit:cover; border-radius:12px; border:1px solid var(--border); box-shadow:var(--shadow);}
+.sr-img-empty{display:flex; align-items:center; justify-content:center; background:var(--bg); font-size:40px; color:var(--text-muted); width:180px; height:180px;}
+@media (max-width:480px){
+  .sr-img,.sr-img-empty{width:140px; height:140px;}
+}
+.scan-not-found{background:var(--warning-light); color:#fbbf24; border-radius:10px; padding:14px; font-size:13.5px;}
+
+/* ---------- REGISTRO DE INVENTARIO: cantidades rápidas ---------- */
+.inv-qty-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;}
+.inv-qty-btn{
+  padding:26px 0; font-size:34px; font-weight:800; text-align:center;
+  background:var(--bg); border:1px solid var(--border); border-radius:14px;
+  color:var(--primary); cursor:pointer;
+}
+.inv-qty-btn:hover{background:var(--primary); color:#fff; border-color:var(--primary);}
+.inv-qty-btn:active{transform:scale(.96);}
+.inv-mas-label{display:flex; flex-direction:column; gap:5px; font-size:13px; font-weight:600; color:#d1d5db;}
+
+/* ---------- NUEVA VENTA: lista de búsqueda ---------- */
+.venta-search-list{display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto;}
+.venta-search-item{
+  display:flex; align-items:center; gap:10px;
+  width:100%; text-align:left; background:var(--bg); border:1px solid var(--border);
+  border-radius:8px; padding:8px 12px; cursor:pointer; font-size:13.5px; color:var(--text);
+}
+.venta-search-item:hover{background:var(--primary-light); border-color:var(--primary);}
+.vsi-thumb{width:40px; height:40px; min-width:40px; object-fit:cover; border-radius:6px; border:1px solid var(--border);}
+.vsi-thumb-empty{display:flex; align-items:center; justify-content:center; background:var(--bg); font-size:16px; color:var(--text-muted);}
+.vsi-info{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.venta-search-item .vsi-nombre{font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.venta-search-item .vsi-meta{color:var(--text-muted); font-size:12px; white-space:nowrap;}
+
+.venta-img-cell{width:40px; padding:4px 6px !important;}
+.venta-thumb{width:36px; height:36px; object-fit:cover; border-radius:6px; border:1px solid var(--border); display:block;}
+.venta-thumb-empty{display:flex; align-items:center; justify-content:center; background:var(--bg); font-size:14px; color:var(--text-muted);}
+
+/* ---------- LIGHTBOX DE IMAGEN ---------- */
+.img-lightbox{position:fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.85); cursor:zoom-out; animation:lbFadeIn .2s;}
+.img-lightbox.open{display:flex;}
+.img-lightbox img{max-width:92vw; max-height:88vh; border-radius:10px; box-shadow:0 8px 40px rgba(0,0,0,.6); object-fit:contain; cursor:default;}
+.cat-thumb{width:44px; height:44px; min-width:44px; object-fit:cover; border-radius:8px; border:1px solid var(--border); display:block; margin-bottom:4px;}
+.cat-thumb-empty{display:flex; align-items:center; justify-content:center; background:var(--bg); font-size:20px; color:var(--text-muted);}
+.cat-card{position:relative; padding-right:32px !important;}
+.cat-del-btn{position:absolute; top:6px; right:6px; font-size:14px; opacity:.4; transition:opacity .15s; z-index:1;}
+.cat-del-btn:hover{opacity:1;}
+
+/* ---------- OCR FACTURA ---------- */
+#ocrTable td{padding:4px 6px; font-size:12.5px;}
+#ocrTable td[contenteditable="true"]{background:var(--primary-light); border-radius:4px; cursor:text;}
+#ocrTable td[contenteditable="true"]:focus{outline:2px solid var(--primary); outline-offset:-2px;}
+#ocrTable .ocr-del-btn{cursor:pointer; opacity:.4; transition:opacity .15s;}
+#ocrTable .ocr-del-btn:hover{opacity:1;}
+#ocrTable tr.ocr-new{background:rgba(34,197,94,0.06);}
+#ocrTable tr.ocr-exists{background:rgba(251,191,36,0.06);}
+#ocrTable tr.ocr-error{background:rgba(239,68,68,0.06);}
+.img-lightbox-close{position:absolute; top:16px; right:20px; font-size:28px; color:#fff; background:rgba(0,0,0,.5); border:none; border-radius:50%; width:40px; height:40px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s;}
+.img-lightbox-close:hover{background:rgba(255,255,255,.25);}
+@keyframes lbFadeIn{from{opacity:0;} to{opacity:1;}}
+
+/* ---------- STOCK NEGATIVO ---------- */
+.stock-negative{color:var(--danger);}
+
+/* ---------- ROL INVITADO ---------- */
+/* Los invitados no ven precio de compra ni precio de marca, y no tienen
+   acceso a las pestañas de Inventario. La pestaña Configuración sí la ven
+   (con la versión reducida: backup y sincronización). */
+body.role-guest .nav-item[data-view="inventario"],
+body.role-guest .nav-item[data-view="compras"],
+body.role-guest .nav-item[data-view="finanzas"],
+body.role-guest .nav-item[data-view="retiros"],
+body.role-guest .nav-item[data-view="deudas"],
+body.role-guest .nav-item[data-view="gastos"],
+body.role-guest .nav-item[data-view="topventas"],
+body.role-guest .nav-item[data-view="pedidos"]{display:none;}
+body.role-guest .nav-pro-group{display:none;}
+body.role-guest .price-guest-hide{display:none;}
+body.role-guest .admin-only{display:none !important;}
+
+/* Filtro por mes en Retiros y Deudas */
+.mes-filtro{display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+.mes-filtro label{font-size:13px; font-weight:600;}
+.mes-filtro .input{max-width:240px;}
+
+/* Gastos del día: fila de subtotal de cada día */
+.gasto-day-row td{background:rgba(255,255,255,0.05); font-weight:600; padding:8px 12px !important;}
+
+/* Productos más vendidos */
+.top-row td{background:rgba(255,215,0,0.08);}
+.top-star{color:#d4a017; font-weight:700; white-space:nowrap;}
+#topVentasTable tbody tr:not(.empty-row){cursor:pointer;}
+#topVentasTable tbody tr:not(.empty-row):hover td{background:rgba(37,99,235,0.08);}
+.stock-min-input{width:90px; padding:4px 8px; font-size:13px;}
+
+/* Pedidos / reposición */
+.pedido-bajo td{background:rgba(255,0,0,0.05);}
+.pedido-stockmin-input{width:80px; padding:4px 8px; font-size:13px;}
+.pedido-cant-input{width:80px; padding:4px 8px; font-size:13px; font-weight:700;}
+
+/* ---------- CONTRASEÑA POR MODO (barra lateral) ---------- */
+/* El botón para agregar contraseña aparece dentro de Herramientas Manuales
+   y Herramientas Eléctricas (solo dueño), y no se muestra a los invitados. */
+#btnAddPassword{display:none; background:none; border:none; cursor:pointer; font-size:12px; color:#9ca3af; text-align:left; padding:6px 0; font-family:inherit;}
+#btnAddPassword:hover{color:#fff;}
+body.modo-manual:not(.role-guest) #btnAddPassword,
+body.modo-electrico:not(.role-guest) #btnAddPassword{display:block;}
+
+/* ---------- MANTENER SESIÓN ABIERTA (solo dueño, este dispositivo) ---------- */
+/* Si está activado, este dispositivo no volverá a pedir la contraseña al
+   entrar a ese modo (ni al recargar la página). Solo afecta al dispositivo. */
+#rememberSwitchRow{display:none;}
+#notifySwitchRow{display:none;}
+body.modo-manual:not(.role-guest) #rememberSwitchRow,
+body.modo-electrico:not(.role-guest) #rememberSwitchRow,
+body.modo-manual:not(.role-guest) #notifySwitchRow,
+body.modo-electrico:not(.role-guest) #notifySwitchRow{display:flex;}
+.remember-switch{
+  display:flex; align-items:center; gap:6px; cursor:pointer;
+  margin:3px 0; padding:3px 6px; border-radius:6px;
+  background:rgba(255,255,255,.04);
+}
+.remember-switch input{display:none;}
+.switch-track{
+  width:19px; height:11px; border-radius:11px; background:#3f444d;
+  position:relative; transition:background .2s ease; flex:none;
+}
+.switch-thumb{
+  position:absolute; top:2px; left:2px; width:7px; height:7px;
+  border-radius:50%; background:#fff; transition:left .2s ease;
+}
+.remember-switch input:checked + .switch-track{background:#16a34a;}
+.remember-switch input:checked + .switch-track .switch-thumb{left:10px;}
+.remember-text{display:flex; flex-direction:column; line-height:1.2;}
+.remember-text strong{font-size:10px; color:#e5e7eb; font-weight:600;}
+.remember-text small{font-size:9px; color:#9ca3af;}
+
+/* ---------- INICIO: pantalla completa negro + naranja ---------- */
+body.inicio-theme .main-wrap{background:#0b0b0c;}
+body.inicio-theme .content{background:#0b0b0c;}
+body.inicio-theme .topbar{background:#0b0b0c; border-bottom:1px solid rgba(251,146,60,.25);}
+body.inicio-theme .topbar h1{color:#fb923c;}
+body.inicio-theme .hamburger{color:#fb923c;}
+body.inicio-theme .nav-item.active{background:#fb923c; color:#0b0b0c;}
+
+/* En la pantalla de Inicio NO hay menú lateral: la barra de navegación (y el
+   botón hamburguesa) solo aparecen después de entrar con un botón de Inicio. */
+body.inicio-theme .sidebar,
+body.inicio-theme .sidebar-overlay,
+body.inicio-theme .hamburger{display:none;}
+body.inicio-theme .main-wrap{margin-left:0;}
+
+.inicio-clock-card{
+  background:transparent; border:none; box-shadow:none;
+  padding:70px 20px 40px; text-align:center; max-width:640px; margin:0 auto;
+}
+.inicio-welcome{
+  font-size:64px; font-weight:800; color:#fb923c; letter-spacing:.02em;
+  line-height:1.1; text-shadow:0 0 44px rgba(251,146,60,.45);
+  margin-bottom:2px;
+}
+.inicio-brand{
+  font-family:'Alfa Slab One','Impact','Arial Black',sans-serif;
+  font-size:44px; font-weight:800; color:#e5e7eb; letter-spacing:.08em;
+  text-shadow:0 0 34px rgba(251,146,60,.35);
+  margin-bottom:18px;
+}
+/* Hora y fecha en UNA sola fila */
+.inicio-clock{
+  display:flex; align-items:baseline; justify-content:center;
+  flex-wrap:wrap; gap:8px 18px; margin-bottom:6px;
+}
+.inicio-time{
+  font-size:64px; font-weight:800; color:#fb923c; letter-spacing:.02em;
+  font-variant-numeric:tabular-nums; line-height:1.05;
+  text-shadow:0 0 44px rgba(251,146,60,.45);
+}
+.inicio-date{
+  font-size:24px; font-weight:600; color:#e5e7eb;
+  text-transform:capitalize; letter-spacing:.01em;
+}
+.inicio-clock-card .hint{color:#9ca3af; font-size:15px; margin-top:22px;}
+
+/* Botones de Inicio uno debajo de otro */
+.inicio-modos{
+  display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:28px;
+}
+.inicio-modo-btn{
+  width:min(340px,100%); padding:16px 26px; border-radius:12px; font-size:17px; font-weight:700;
+  cursor:pointer; border:2px solid transparent;
+  transition:filter .15s ease, transform .1s ease;
+}
+.inicio-modo-btn:hover{filter:brightness(1.1); transform:translateY(-1px);}
+.inicio-modo-manual{background:#f26522; color:#fff; box-shadow:0 0 24px rgba(242,101,34,.35);}
+.inicio-modo-electrico{background:#f6c000; color:#403000; box-shadow:0 0 24px rgba(246,192,0,.35);}
+.inicio-modo-invitado{background:#16a34a; color:#fff; box-shadow:0 0 24px rgba(22,163,74,.35);}
+
+/* "Creado Por Abner Perez": centro abajo, fuente formal delgada y elegante */
+#view-inicio{position:relative;}
+.inicio-footer{
+  position:absolute; bottom:8px; left:0; right:0; text-align:center;
+  color:#fef3e2; font-size:22px; font-weight:300; letter-spacing:.14em;
+  font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  font-style:italic;
+  text-transform:capitalize;
+  text-shadow:0 0 22px rgba(251,146,60,.55), 0 2px 6px rgba(0,0,0,.6);
+}
+.inicio-footer::before{
+  content:""; display:block; width:64px; height:1px; margin:0 auto 10px;
+  background:linear-gradient(90deg, transparent, rgba(251,146,60,.8), transparent);
+}
+
+@media (max-width: 560px){
+  .inicio-footer{font-size:16px; bottom:4px;}
+}
+
+/* ---------- PANTALLAS DE BIENVENIDA (una por modo) ---------- */
+/* Aparecen al entrar con un botón de Inicio: solo el nombre del modo en su
+   color respectivo (naranja/amarillo/verde), a todo color sin bordes blancos.
+   Conservan el menú lateral (hamburguesa en el celular) para poder navegar. */
+body.welcome-view .content{padding:0; overflow:hidden;}
+body.welcome-view .view-welcome.active{
+  display:flex; align-items:center; justify-content:center;
+  min-height:calc(100vh - 52px); text-align:center; padding:24px;
+}
+body.welcome-view .topbar{border-bottom:none;}
+body.modo-manual.welcome-view .topbar{background:#241005;}
+body.modo-electrico.welcome-view .topbar{background:#241d02;}
+body.modo-invitado.welcome-view .topbar{background:#052e16;}
+body.modo-manual.welcome-view .topbar h1,
+body.modo-manual.welcome-view .hamburger{color:#fb923c;}
+body.modo-electrico.welcome-view .topbar h1,
+body.modo-electrico.welcome-view .hamburger{color:#facc15;}
+body.modo-invitado.welcome-view .topbar h1,
+body.modo-invitado.welcome-view .hamburger{color:#4ade80;}
+.welcome-subtitle{
+  font-family:'Alfa Slab One','Impact','Arial Black',sans-serif;
+  font-size:46px; font-weight:800; letter-spacing:.03em; margin:0;
+}
+.welcome-hint{font-size:13px; opacity:.75; margin-top:16px;}
+/* Logo grande debajo del título: 🛠️ en Manuales, ⚡ en Eléctricas y los dos
+   juntos (🛠️ ⚡) alineados horizontalmente en el Invitado. */
+.welcome-logo{
+  display:flex; justify-content:center; align-items:center; gap:16px;
+  font-size:58px; line-height:1; margin-top:18px;
+}
+.welcome-logo span{display:inline-block;}
+
+body.modo-manual .view-welcome{background:#241005;}
+body.modo-electrico .view-welcome{background:#241d02;}
+body.modo-invitado .view-welcome{background:#052e16;}
+body.modo-manual .welcome-subtitle{color:#fb923c;}
+body.modo-electrico .welcome-subtitle{color:#facc15;}
+body.modo-invitado .welcome-subtitle{color:#4ade80;}
+body.modo-manual .view-welcome .welcome-hint{color:#fdba74;}
+body.modo-electrico .view-welcome .welcome-hint{color:#fde047;}
+body.modo-invitado .view-welcome .welcome-hint{color:#86efac;}
+
+@media (max-width: 560px){
+  .welcome-subtitle{font-size:28px;}
+  .welcome-logo{font-size:40px; gap:12px; margin-top:12px;}
+}
+
+/* ---------- MODO: HERRAMIENTAS MANUALES (naranja) ---------- */
+body.modo-manual .sidebar{background:#241005;}
+body.modo-manual .sidebar-brand{border-bottom-color:rgba(242,101,34,.25);}
+body.modo-manual .brand-text strong{color:#fdba74;}
+body.modo-manual .nav-item.active{background:#f26522; color:#fff;}
+body.modo-manual .nav-item:hover{background:rgba(242,101,34,.18); color:#fdba74;}
+body.modo-manual .sidebar-footer{border-top-color:rgba(242,101,34,.25);}
+
+/* ---------- MODO: HERRAMIENTAS ELÉCTRICAS (amarillo) ---------- */
+body.modo-electrico .sidebar{background:#241d02;}
+body.modo-electrico .sidebar-brand{border-bottom-color:rgba(246,192,0,.25);}
+body.modo-electrico .brand-text strong{color:#fde047;}
+body.modo-electrico .nav-item.active{background:#f6c000; color:#403000;}
+body.modo-electrico .nav-item:hover{background:rgba(246,192,0,.18); color:#fde047;}
+body.modo-electrico .sidebar-footer{border-top-color:rgba(246,192,0,.25);}
+
+/* ---------- MODO: INVITADO (verde) ---------- */
+body.modo-invitado .sidebar{background:#052e16;}
+body.modo-invitado .sidebar-brand{border-bottom-color:rgba(22,163,74,.25);}
+body.modo-invitado .brand-text strong{color:#86efac;}
+body.modo-invitado .nav-item.active{background:#16a34a; color:#fff;}
+body.modo-invitado .nav-item:hover{background:rgba(22,163,74,.18); color:#86efac;}
+body.modo-invitado .sidebar-footer{border-top-color:rgba(22,163,74,.25);}
+body.modo-invitado .sidebar-footer small{color:#86efac;}
+
+@media (max-width: 560px){
+  .inicio-modos{margin-top:18px; gap:10px;}
+  .inicio-modo-btn{font-size:14px; padding:13px 14px;}
+}
+@media (max-width: 900px){
+  .inicio-welcome{font-size:44px;}
+  .inicio-brand{font-size:30px;}
+  .inicio-time{font-size:44px;}
+  .inicio-date{font-size:18px;}
+}
+@media (max-width: 560px){
+  .inicio-clock-card{padding:40px 14px 24px;}
+  .inicio-welcome{font-size:30px;}
+  .inicio-brand{font-size:22px;}
+  .inicio-time{font-size:30px;}
+  .inicio-date{font-size:14px;}
+}
+
+/* ---------- VENTAS Y COMPRAS: FILTRO POR FECHAS ---------- */
+.ventas-dates{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px;
+}
+.venta-date-chip,
+.compra-date-chip{
+  border:1px solid var(--border); background:var(--surface); color:var(--text);
+  padding:6px 13px; border-radius:20px; font-size:12.5px; font-weight:600;
+  cursor:pointer; transition:all .15s ease; font-family:inherit;
+}
+.venta-date-chip:hover,
+.compra-date-chip:hover{border-color:var(--primary); color:var(--primary);}
+.venta-date-chip.active,
+.compra-date-chip.active{background:var(--primary); border-color:var(--primary); color:#fff;}
+.venta-date-picker{position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;}
+.export-reminder{
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  background:var(--warning-light); border:1px solid var(--warning);
+  color:#fbbf24; border-radius:10px; padding:12px 14px; font-size:13px; margin-bottom:12px;
+}
+.export-reminder span{flex:1; min-width:220px;}
+.btn-sm{padding:6px 12px; font-size:12.5px;}
+
+/* ---------- ESTADO FINANCIERO ---------- */
+.fin-stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;}
+.fin-card{
+  background:var(--bg); border:1px solid var(--border); border-radius:12px;
+  padding:18px; display:flex; flex-direction:column; gap:4px;
+}
+.fin-label{font-size:12.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em;}
+.fin-value{font-size:26px; font-weight:800; color:var(--text); line-height:1.15;}
+.fin-card:nth-child(2) .fin-value{color:var(--success);}
+.fin-card:nth-child(3) .fin-value{color:var(--primary);}
+.fin-sub{font-size:11.5px; color:var(--text-muted);}
+
+/* TOTAL DE VENTAS del día (arriba del Ajuste de cuentas) */
+.total-ventas-panel{
+  margin-top:14px; border:2px solid var(--primary); background:var(--surface);
+  box-shadow:var(--shadow);
+}
+.total-ventas-panel .panel-body-total{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  flex-wrap:wrap; padding:14px 18px;
+}
+.total-ventas-label{
+  font-size:13px; font-weight:700; color:var(--text-muted);
+  text-transform:uppercase; letter-spacing:.05em;
+}
+.total-ventas-label span{font-weight:600; text-transform:none; letter-spacing:0;}
+.total-ventas-valor{font-size:30px; font-weight:800; color:var(--primary); line-height:1.1;}
+
+
+/* CAMBIO (Ajuste de cuentas): va alineado horizontalmente con el título, al
+   lado del encabezado. La casilla mide unos 3 cm (113px) de largo. */
+.panel-header-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
+.ajuste-cambio{
+  display:flex; align-items:center; gap:6px;
+  font-size:11.5px; font-weight:700; letter-spacing:.04em;
+  color:var(--text-muted); text-transform:uppercase;
+}
+.ajuste-cambio .input{width:113px; text-align:right; font-weight:700; text-transform:none; padding:4px 8px;}
+
+/* CAMBIO por modo del invitado: dos campos (Manuales naranja / Eléctricas amarillo) */
+.ajuste-cambio-guest{display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap;}
+.ajuste-cambio-guest .ajuste-cambio{flex-direction:column; align-items:flex-end; gap:3px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--bg);}
+.ajuste-cambio-guest .ajuste-cambio .input{width:100px;}
+.ajuste-cambio-guest .adjust-legend{display:flex; align-items:center; gap:6px; font-size:10.5px; letter-spacing:.02em; text-transform:none; color:var(--text-muted);}
+.ajuste-cambio-guest .gp-modo-dot{width:11px; height:11px; border-radius:50%; display:inline-block; flex-shrink:0;}
+.ajuste-cambio-guest .gp-modo-dot.man{background:#f26522;}
+.ajuste-cambio-guest .gp-modo-dot.el{background:#f6c000;}
+@media (max-width:640px){
+  .ajuste-cambio-guest{flex-direction:column; align-items:stretch;}
+  .ajuste-cambio-guest .ajuste-cambio{align-items:stretch;}
+  .ajuste-cambio-guest .ajuste-cambio .input{width:100%;}
+}
+
+/* ---------- DEUDAS: agrupadas por marca ---------- */
+.deuda-group{background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:16px; overflow:hidden;}
+.deuda-group-header{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:14px 18px; border-bottom:1px solid var(--border); background:var(--bg);
+}
+.deuda-group-header h3{margin:0 0 2px; font-size:15px;}
+.deuda-group-header strong{font-size:16px; color:var(--danger);}
+.deuda-group-header .hint{margin:0; display:block; font-size:12px;}
+
+/* ---------- TOASTS ---------- */
+.toast-container{position:fixed; bottom:20px; right:20px; z-index:400; display:flex; flex-direction:column; gap:10px;}
+.toast{
+  background:#111827; color:#fff; padding:12px 18px; border-radius:8px; font-size:13.5px;
+  box-shadow:0 6px 16px rgba(0,0,0,.2); animation:toastIn .2s ease; max-width:320px;
+}
+.toast.success{background:var(--success);}
+.toast.error{background:var(--danger);}
+.toast.warning{background:var(--warning);}
+@keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+/* ---------- MISC ---------- */
+.hint{color:var(--text-muted); font-size:13px;}
+code{background:var(--bg); padding:2px 6px; border-radius:4px; font-size:12px;}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 900px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay.open{display:block;}
+  .main-wrap{margin-left:0;}
+  .hamburger{display:block;}
+  .form-grid{grid-template-columns:1fr;}
+}
+@media (max-width: 560px){
+  .content{padding:14px;}
+  .topbar{padding:12px 14px;}
+  .topbar h1{font-size:16px;}
+  .cards-grid{grid-template-columns:1fr 1fr;}
+  .ocr-reader{height:220px; max-width:100%;}
+  .scan-manual{flex-direction:column;}
+}
+
+/* ---------- PALETA DE TEMAS (Opciones) ---------- */
+.theme-palette{display:flex; flex-direction:column; gap:6px; margin:4px 0;}
+.palette-row{display:flex; gap:8px; align-items:center;}
+.palette-swatch{
+  width:30px; height:30px; border-radius:50%; cursor:pointer; padding:0;
+  border:2px solid rgba(255,255,255,.30);
+  box-shadow:0 0 0 1px rgba(0,0,0,.35);
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.palette-swatch:hover{transform:scale(1.12);}
+.palette-swatch.active{
+  border-color:#fff;
+  box-shadow:0 0 0 2px var(--primary), 0 0 10px rgba(255,255,255,.7);
+}
+
+/* ---------- TEMAS DE COLOR (variables) ---------- */
+/* Blanco (claro): contenido claro, menú lateral oscuro con letras blancas */
+body.theme-blanco{
+  --bg:#f3f4f6; --surface:#ffffff; --border:#d1d5db;
+  --text:#1f2937; --text-muted:#6b7280;
+  --sidebar-bg:#111318; --sidebar-text:#ffffff; --sidebar-active:#2a2f3a;
+}
+body.theme-blanco .brand-text strong{color:#fff;}
+body.theme-blanco .sidebar-brand{border-bottom-color:rgba(255,255,255,.08);}
+body.theme-blanco .sidebar-footer{border-top-color:rgba(255,255,255,.08); color:#9ca3af;}
+body.theme-blanco .table th{background:#e5e7eb; color:#4b5563;}
+body.theme-blanco .table tbody tr:hover{background:#e5e7eb;}
+body.theme-blanco .nav-item.active{color:#fff;}
+
+/* Negro (oscuro: el color original) */
+body.theme-negro{
+  --bg:#000000; --surface:#14161a; --border:#2a2e35;
+  --text:#e7e9ee; --text-muted:#9aa1ac;
+  --sidebar-bg:#0a0a0c; --sidebar-text:#c9ced6; --sidebar-active:#1f2937;
+}
+
+/* Naranjado (estilo TRUPER: naranja vivo, fondo naranja claro) */
+body.theme-naranja{
+  --primary:#f26522; --primary-dark:#d9520f; --primary-light:#ff8a3d;
+  --bg:#ffeadd; --surface:#fff7f1; --border:#f7c8ab;
+  --text:#3b2417; --text-muted:#96664a;
+  --sidebar-bg:#f26522; --sidebar-text:#ffffff; --sidebar-active:#d9520f;
+}
+body.theme-naranja .brand-text strong{color:#fff;}
+body.theme-naranja .sidebar-brand{border-bottom-color:rgba(255,255,255,.28);}
+body.theme-naranja .sidebar-footer{border-top-color:rgba(255,255,255,.28); color:#fff;}
+body.theme-naranja .nav-item:hover{background:rgba(255,255,255,.22); color:#fff;}
+body.theme-naranja .nav-item.active{background:#d9520f; color:#fff;}
+body.theme-naranja .remember-switch{background:rgba(255,255,255,.16);}
+body.theme-naranja .remember-text strong{color:#fff;}
+body.theme-naranja .remember-text small{color:#ffe4d1;}
+body.theme-naranja #btnAddPassword{color:#ffe4d1;}
+body.theme-naranja #btnToggleOptions{background:#b6470d; color:#fff;}
+body.theme-naranja .table th{background:#fcd9c2; color:#8a4a24;}
+body.theme-naranja .table tbody tr:hover{background:#ffd9bd;}
+
+/* Amarillo (estilo INGCO: amarillo brillante, fondo amarillo claro) */
+body.theme-amarillo{
+  --primary:#f6c000; --primary-dark:#d9a500; --primary-light:#ffe14d;
+  --bg:#fff4c9; --surface:#fffbea; --border:#f3dd86;
+  --text:#403000; --text-muted:#8f7c26;
+  --sidebar-bg:#f6c000; --sidebar-text:#ffffff; --sidebar-active:#c99700;
+}
+body.theme-amarillo .brand-text strong{color:#fff;}
+body.theme-amarillo .sidebar-brand{border-bottom-color:rgba(255,255,255,.32);}
+body.theme-amarillo .sidebar-footer{border-top-color:rgba(255,255,255,.32); color:#fff;}
+body.theme-amarillo .nav-item:hover{background:rgba(64,48,0,.16); color:#fff;}
+body.theme-amarillo .nav-item.active{background:#c99700; color:#fff;}
+body.theme-amarillo .remember-switch{background:rgba(255,255,255,.22);}
+body.theme-amarillo .remember-text strong{color:#fff;}
+body.theme-amarillo .remember-text small{color:#fff;}
+body.theme-amarillo #btnAddPassword{color:#fff;}
+body.theme-amarillo #btnToggleOptions{background:#c99700; color:#fff;}
+body.theme-amarillo .btn-home{color:#fff;}
+body.theme-amarillo .table th{background:#fbeeb5; color:#7a6a10;}
+body.theme-amarillo .table tbody tr:hover{background:#fdeeb0;}
+body.theme-amarillo .btn-primary{color:#403000;}
+
+/* Repetidos en tabla de ventas (Manuales admin) */
+.venta-repetida{background:#fff8e1 !important;}
+.venta-repetida:hover{background:#ffecb3 !important;}
+.venta-duplicada{background:#ffebee !important; border-left:3px solid #e53935;}
+.venta-duplicada:hover{background:#ffcdd2 !important;}
+.badge-rep{display:inline-block; font-size:11px; font-weight:700; color:#e65100; background:#fff3e0; border-radius:8px; padding:1px 6px; margin-left:6px; vertical-align:middle;}
+.badge-dup{display:inline-block; font-size:11px; font-weight:700; color:#b71c1c; background:#ffebee; border-radius:8px; padding:1px 6px; margin-left:6px; vertical-align:middle;}
+/* Punto de modo en tabla de ventas (invitado) */
+.venta-modo-dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; border:1px solid rgba(255,255,255,.3);}
+.venta-modo-dot.man{background:#f26522;}
+.venta-modo-dot.el{background:#f6c000;}
+
+/* ---------- GASTOS/PRESTAMOS: TIPO DE PAGO (Efectivo/QR) ---------- */
+.gp-tipo-pago{display:flex; gap:4px; flex-shrink:0;}
+.gp-tipo-pago .scan-tab{min-width:auto; padding:6px 10px; font-size:12px; flex:none;}
+.gp-tipo-badge{
+  display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700;
+  padding:3px 8px; border-radius:6px; cursor:pointer; border:1px solid var(--border);
+  background:var(--bg); color:var(--text-muted); white-space:nowrap; flex-shrink:0;
+  transition:all .15s ease;
+}
+.gp-tipo-badge:hover{border-color:var(--primary); color:var(--primary);}
+.gp-tipo-efectivo{color:#4ade80; border-color:rgba(74,222,128,.3); background:rgba(74,222,128,.08);}
+.gp-tipo-qr{color:#60a5fa; border-color:rgba(96,165,250,.3); background:rgba(96,165,250,.08);}
+
+/* ---------- AJUSTE DE CUENTAS: DINERO REAL ---------- */
+.ajuste-real-box{
+  display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:14px;
+  padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:12px;
+}
+.ajuste-real-label{
+  display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700;
+  color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em;
+}
+.ajuste-real-input{
+  width:140px; text-align:right; font-weight:700; padding:6px 10px; font-size:15px;
+}
+.ajuste-real-resultado{
+  font-size:16px; font-weight:800; padding:6px 14px; border-radius:10px;
+}
+.ajuste-real-ok{color:#4ade80; background:rgba(74,222,128,.12); padding:6px 14px; border-radius:10px;}
+.ajuste-real-sobra{color:#fbbf24; background:rgba(251,191,36,.12); padding:6px 14px; border-radius:10px;}
+.ajuste-real-falta{color:#f87171; background:rgba(248,113,113,.12); padding:6px 14px; border-radius:10px;}
+
+/* ---------- BOTONES TOTALES POR MODO ---------- */
+.modo-total-btn{
+  display:inline-flex; align-items:center; gap:4px; font-size:13px; font-weight:700;
+  padding:6px 14px; border-radius:8px; border:1px solid var(--border); background:var(--bg);
+  color:var(--text-muted); cursor:pointer; transition:all .15s ease;
+}
+.modo-total-btn:hover{transform:scale(1.04); box-shadow:0 2px 8px rgba(0,0,0,.12);}
+.modo-total-btn.man{border-color:rgba(242,101,34,.3); color:#f26522;}
+.modo-total-btn.man:hover{background:rgba(242,101,34,.08);}
+.modo-total-btn.el{border-color:rgba(246,192,0,.3); color:#f6c000;}
+.modo-total-btn.el:hover{background:rgba(246,192,0,.08);}
+
+/* ---------- MODAL DETALLE POR MODO ---------- */
+.modo-detalle-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));
+  gap:10px;
+}
+.modo-detalle-card{
+  display:flex; flex-direction:column; gap:2px; padding:10px 12px;
+  background:var(--bg); border:1px solid var(--border); border-radius:10px;
+  text-align:center;
+}
+.modo-detalle-label{font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
+.modo-detalle-value{font-size:16px; font-weight:800; color:var(--text);}
