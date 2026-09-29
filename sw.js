@@ -1,106 +1,75 @@
 /* =========================================================================
-   SERVICE WORKER — TIENDA 1 (app instalable y offline)
-   Guarda en caché los archivos de la app para que abra como una app y
-   funcione sin internet (los datos se sincronizan cuando hay conexión).
+   SERVICE WORKER — CATÁLOGO
+   Guarda los archivos de la app en caché para que abra como aplicación y
+   funcione SIN INTERNET.
+   Los productos y las fotos NO pasan por aquí: viven en IndexedDB.
+
+   OJO: si se cambia index.html, app.js, styles.css o los iconos, hay que
+   SUBIR el número de versión de CACHE. Si no, el navegador sigue usando
+   la copia vieja que ya tenía guardada.
    ========================================================================= */
 
-const CACHE = 'stockferre-v2';
+const CACHE = 'catalogo-tienda-v2';
 
-// Archivos esenciales para que la app arranque sin conexión.
-// Los CDNs (Firebase, Tesseract, lector de barras, fuentes) también se
-// pre-cachean: con una sola visita quedan listos para usar offline.
 const PRECACHE = [
   './',
   './index.html',
   './app.js',
   './styles.css',
-  './firebase-config.js',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
-  'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-  'https://unpkg.com/@zxing/library@0.20.0',
-  'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js',
-  'https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Cormorant+Garamond:ital,wght@1,300&display=swap'
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => {
-        // addAll falla si UNA sola URL no responde; para que el SW se instale
-        // igual aunque un CDN esté caído, se precachean una por una.
-        return Promise.allSettled(
-          PRECACHE.map((u) => cache.add(new Request(u, { mode: 'cors' })))
-        );
-      })
+      .then(cache => Promise.allSettled(
+        PRECACHE.map(u => cache.add(new Request(u, { cache: 'reload' })))
+      ))
       .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET') return; // Firebase, ventas, etc. pasan normal
+  if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  const esNavegacion = req.mode === 'navigate';
-
-  // Pedidos opacos (imágenes de la web, Google Fonts con no-cors, etc.):
-  // se dejan pasar sin tocar para no guardar respuestas ilegibles.
-  if (req.mode !== 'cors' && url.origin !== self.location.origin) {
-    return; // el navegador los maneja normal
-  }
+  if (url.origin !== self.location.origin) return;   // nada externo que cachear
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
 
-    // Navegación y archivos "core" (HTML, JS, CSS, config): PRIMERO red y, si
-    // no hay conexión, la copia. Así cada vez que se abre la app se descarga
-    // la versión nueva con los arreglos de sincronización (clave para el
-    // celular: si sirviéramos siempre la copia, el celular vería el código
-    // viejo y seguiría desincronizado para siempre).
-    // NOTA: sirve también cuando la app está publicada en GitHub Pages, donde
-    // las rutas son ".../repo/app.js" (por eso se compara el nombre del
-    // archivo y no la ruta exacta).
-    const archivo = (url.pathname.replace(/\/+$/, '') || '/').split('/').pop();
-    const esCore = esNavegacion ||
-      archivo === 'index.html' || archivo === 'app.js' ||
-      archivo === 'styles.css' || archivo === 'firebase-config.js' ||
-      archivo === 'manifest.json';
-    if (esCore) {
+    // Navegación y archivos de la app: primero la red (para traer cambios),
+    // y si no hay internet, la copia guardada.
+    const esNavegacion = req.mode === 'navigate';
+    if (esNavegacion) {
       try {
         const fresh = await fetch(req);
-        if (fresh && fresh.ok) cache.put(req, fresh.clone());
+        if (fresh && fresh.ok) cache.put('./index.html', fresh.clone());
         return fresh;
       } catch (e) {
-        const clave = esNavegacion ? './index.html' : req;
-        const copia = await cache.match(clave);
-        if (copia) return copia;
-        return new Response('Sin conexión y sin copia guardada.', { status: 503 });
+        return (await cache.match('./index.html')) ||
+               (await cache.match('./')) ||
+               new Response('Sin conexión.', { status: 503 });
       }
     }
 
-    // Resto (imágenes, fuentes, CDNs): usa la copia si existe y, en segundo
-    // plano, la actualiza.
-    const cached = await cache.match(req);
-    const network = fetch(req)
-      .then((res) => {
-        if (res && res.ok) cache.put(req, res.clone());
-        return res;
-      })
+    const guardada = await cache.match(req);
+    const red = fetch(req)
+      .then(res => { if (res && res.ok) cache.put(req, res.clone()); return res; })
       .catch(() => null);
-    if (cached) return cached;
-    return (await network) || new Response('', { status: 504 });
+
+    if (guardada) return guardada;
+    return (await red) || new Response('', { status: 504 });
   })());
 });
