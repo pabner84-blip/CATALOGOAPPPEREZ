@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es" data-tema="oscuro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Catálogo · Pedidos por WhatsApp</title>
+<meta name="description" content="Catálogo de productos para clientes: imagen, código, descripción y marca. Pide por WhatsApp directamente.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f26522">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CATÁLOGO">
+<link rel="apple-touch-icon" href="icono-192.png">
+<link rel="icon" href="icono-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ==================== CABECERA ==================== -->
+<header class="topbar">
+  <div class="topbar-bg"></div>
+
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">🛠️</div>
+      <div class="brand-txt">
+        <strong>CATÁLOGO</strong>
+        <small id="brandSub">Herramientas manuales &amp; eléctricas · pedidos por WhatsApp</small>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn btn-icon btn-wa-top" id="btnPedirTodo" title="Escríbenos por WhatsApp" aria-label="Pedir por WhatsApp">💬</button>
+      <button class="btn btn-icon" id="btnTheme" title="Cambiar tema" aria-label="Cambiar tema">🌙</button>
+    </div>
+  </div>
+
+  <!-- ---------- BUSCADOR ---------- -->
+  <div class="searchbar">
+    <div class="search-box">
+      <span class="search-ico">🔍</span>
+      <input type="search" id="search" autocomplete="off" spellcheck="false"
+             placeholder="Buscar por nombre, código, marca o código de barras…">
+      <button class="search-clear" id="btnClear" hidden aria-label="Limpiar búsqueda">✕</button>
+    </div>
+    <div class="suggest" id="suggest" hidden></div>
+  </div>
+
+  <!-- ---------- PROGRESO DE CARGA ---------- -->
+  <div class="progress" id="progress" hidden>
+    <div class="progress-head">
+      <span id="progressTxt">Cargando…</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+  </div>
+</header>
+
+<!-- ==================== CONTENIDO ==================== -->
+<main class="wrap">
+
+  <!-- ---------- FILTROS ---------- -->
+  <section class="filters" id="filters" hidden>
+    <div class="filters-row">
+      <label class="field">
+        <span>Marca</span>
+        <select id="selMarca"><option value="">Todas</option></select>
+      </label>
+      <label class="field">
+        <span>Ordenar</span>
+        <select id="selOrden">
+          <option value="nombre">Nombre (A–Z)</option>
+          <option value="nombre-desc">Nombre (Z–A)</option>
+          <option value="codigo">Código</option>
+          <option value="categoria">Categoría</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <!-- ---------- REJILLA DE PRODUCTOS ---------- -->
+  <section class="grid" id="grid"></section>
+
+  <!-- ---------- ESTADO VACÍO ---------- -->
+  <section class="empty" id="empty" hidden>
+    <div class="empty-art">📦</div>
+    <h2 id="emptyTitle">No hay productos que coincidan</h2>
+    <p id="emptyMsg">Prueba con otra palabra o quita los filtros.</p>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <span id="footInfo">Catálogo para clientes</span>
+  <span>Pedidos por WhatsApp</span>
+</footer>
+
+<!-- ==================== MODAL: FICHA DEL PRODUCTO ==================== -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="mdTitle">
+    <button class="modal-close" data-close aria-label="Cerrar">✕</button>
+
+    <div class="modal-body">
+      <!-- Fotos -->
+      <div class="gal">
+        <div class="gal-track" id="galTrack"></div>
+        <button class="gal-nav gal-prev" id="galPrev" aria-label="Foto anterior">‹</button>
+        <button class="gal-nav gal-next" id="galNext" aria-label="Foto siguiente">›</button>
+        <div class="gal-counter" id="galCounter"></div>
+        <div class="gal-dots" id="galDots"></div>
+      </div>
+
+      <div class="md-head">
+        <span class="code-chip" id="mdCodigo">—</span>
+      </div>
+
+      <h2 class="md-title" id="mdTitle">Producto</h2>
+      <div class="md-tags" id="mdTags"></div>
+
+      <div class="detail-grid" id="mdGrid"></div>
+
+      <!-- Características: los párrafos de la app original se muestran tal cual -->
+      <div class="md-block" id="mdCaracBlock" hidden>
+        <span class="detail-label">Características</span>
+        <div class="md-carac" id="mdCarac"></div>
+      </div>
+
+      <div class="md-foot">
+        <button class="btn btn-primary btn-lg" id="mdWa">💬 Pedir por WhatsApp</button>
+        <button class="btn btn-ghost" data-close>Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== AVISOS ==================== -->
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
